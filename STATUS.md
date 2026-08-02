@@ -14,6 +14,7 @@
 - 首次真实用户测试（2026-08-02）：解释用户提供的 Unity Asset Store 截图，`--detail` 模式正确输出资源详情页的概述、对象、文本与数值。
 - 第二次真实用户测试（2026-08-02）：基于 LSP 诊断截图给出解决方案；`--detail` 正确提取 Pyright reportMissingImports 诊断（auth.py 第 4 行 fastapi 导入失败）。
 - 第三次真实用户测试（2026-08-02）：图表模式解读 Revenue/Earnings Trend 柱线复合图（3Q25–3Q26），正确提取各季度 Revenue 与 Adj EPS 数值及趋势。
+- 第四次真实用户测试（2026-08-02）：设计稿截图 → HTML 页面重建（`examples/design-page.html`，三栏社区论坛）；发现并修复 `--detail` 输出被 512 token 截断的问题（默认提升至 2048）。
 
 ## 进行中
 

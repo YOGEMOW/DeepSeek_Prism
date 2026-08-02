@@ -24,6 +24,7 @@ export const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
 export const MAX_CACHE_ENTRIES = 1000;
 export const DEFAULT_TIMEOUT_MS = 45000;
 export const DEFAULT_MAX_TOKENS = 512;
+export const DETAIL_MAX_TOKENS = 2048;
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 
@@ -575,6 +576,10 @@ export function parseArgs(argv) {
   return args;
 }
 
+export function defaultMaxTokensFor(detail) {
+  return detail ? DETAIL_MAX_TOKENS : DEFAULT_MAX_TOKENS;
+}
+
 function resultToJson(result) {
   const { raw, ...rest } = result;
   return JSON.stringify(rest, null, 2);
@@ -586,11 +591,11 @@ export async function see(args, env = process.env) {
   const question = args.question ? String(args.question) : "只返回最重要的可见证据。";
   const region = env.VISION_REGION === "global" ? "global" : "cn";
   const requested = args.provider || env.VISION_PROVIDER || "auto";
-  const maxTokens = Number(env.VISION_MAX_OUTPUT_TOKENS || DEFAULT_MAX_TOKENS);
+  const detail = Boolean(args.detail);
+  const maxTokens = Number(env.VISION_MAX_OUTPUT_TOKENS || defaultMaxTokensFor(detail));
   const maxChars = Number(args["max-chars"] || env.VEP_MAX_CHARS || DEFAULT_MAX_CHARS);
   const timeoutMs = Number(env.VISION_TIMEOUT_MS || DEFAULT_TIMEOUT_MS);
   const mode = inferMode(question);
-  const detail = Boolean(args.detail);
   const prompt = detail
     ? buildDetailPrompt(question, mode)
     : buildPrompt(question, mode);

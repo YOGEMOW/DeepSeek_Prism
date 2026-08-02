@@ -9,6 +9,7 @@ import {
   buildPrompt,
   cacheKeyFor,
   cleanRaw,
+  defaultMaxTokensFor,
   extractJson,
   inferMode,
   parseArgs,
@@ -159,6 +160,11 @@ test("parseArgs 解析 --key value 与布尔 flag", () => {
   assert.equal(args.question, "看什么");
   assert.equal(args["no-cache"], true);
   assert.equal(args["max-chars"], "300");
+});
+
+test("defaultMaxTokensFor：detail 模式使用更大输出预算", () => {
+  assert.equal(defaultMaxTokensFor(false), 512);
+  assert.equal(defaultMaxTokensFor(true), 2048);
 });
 
 function startMockServer(handler) {

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SiYuan 社区</title>
+  <style>
+    :root {
+      --nav-bg: #2d3748;
+      --nav-text: #e2e8f0;
+      --search-bg: #4a5568;
+      --sidebar-bg: #f7fafc;
+      --sidebar-text: #4a5568;
+      --card-bg: #ffffff;
+      --title-color: #2d3748;
+      --preview-color: #4a5568;
+      --accent-red: #e53e3e;
+      --muted: #718096;
+      --border: #e2e8f0;
+      --hover-bg: #edf2f7;
+      --page-bg: #f0f2f5;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--page-bg);
+      color: var(--title-color);
+      font-size: 14px;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* 顶部导航栏 */
+    .topbar {
+      height: 44px;
+      background: var(--nav-bg);
+      color: var(--nav-text);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      padding: 0 18px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .brand { font-size: 16px; font-weight: 700; color: #fff; white-space: nowrap; }
+    .search-box {
+      width: 200px;
+      height: 28px;
+      background: var(--search-bg);
+      border: none;
+      border-radius: 4px;
+      color: var(--nav-text);
+      padding: 0 10px;
+      font-size: 13px;
+      outline: none;
+    }
+    .search-box::placeholder { color: #a0aec0; }
+    .nav-links { display: flex; gap: 18px; }
+    .nav-links a { color: var(--nav-text); font-size: 14px; }
+    .nav-links a:hover, .nav-links a.active { color: #fff; }
+    .topbar .spacer { flex: 1; }
+    .icon-btn { background: none; border: none; color: var(--nav-text); font-size: 16px; cursor: pointer; }
+    .avatar {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: #718096; color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 12px;
+    }
+
+    /* 三栏布局 */
+    .container {
+      max-width: 1180px;
+      margin: 16px auto;
+      padding: 0 12px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    /* 左侧边栏 */
+    .sidebar-left {
+      width: 180px;
+      flex-shrink: 0;
+      background: var(--sidebar-bg);
+      border-radius: 6px;
+      padding: 10px 8px;
+      position: sticky;
+      top: 60px;
+    }
+    .sidebar-left a {
+      display: block;
+      padding: 7px 10px;
+      border-radius: 4px;
+      color: var(--sidebar-text);
+      font-size: 13px;
+    }
+    .sidebar-left a:hover { background: var(--hover-bg); }
+    .sidebar-left .group-title {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 8px 10px 4px;
+    }
+
+    /* 中间主内容区 */
+    .main { flex: 1; min-width: 0; background: var(--card-bg); border-radius: 6px; }
+    .post {
+      display: flex;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      min-height: 80px;
+    }
+    .post:last-child { border-bottom: none; }
+    .post .avatar { flex-shrink: 0; margin-top: 2px; }
+    .post-body { min-width: 0; flex: 1; }
+    .post-title { font-size: 15px; font-weight: 700; color: var(--title-color); margin-bottom: 4px; }
+    .post-title:hover { color: var(--accent-red); }
+    .post-preview {
+      font-size: 13px;
+      color: var(--preview-color);
+      line-height: 1.6;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .post-meta { margin-top: 8px; font-size: 12px; color: var(--muted); display: flex; gap: 12px; }
+    .post-meta .count { color: var(--accent-red); }
+
+    /* 右侧边栏 */
+    .sidebar-right {
+      width: 250px;
+      flex-shrink: 0;
+      background: var(--sidebar-bg);
+      border-radius: 6px;
+      padding: 10px 0;
+      position: sticky;
+      top: 60px;
+    }
+    .sidebar-right h3 {
+      font-size: 13px;
+      color: var(--title-color);
+      padding: 6px 14px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hot-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .hot-item:last-child { border-bottom: none; }
+    .hot-item .avatar { width: 22px; height: 22px; font-size: 11px; flex-shrink: 0; margin-top: 1px; }
+    .hot-item .text { font-size: 13px; color: var(--sidebar-text); line-height: 1.45; }
+    .hot-item:hover .text { color: var(--title-color); }
+
+    /* 响应式 */
+    @media (max-width: 960px) { .sidebar-left { display: none; } }
+    @media (max-width: 760px) { .sidebar-right { display: none; } .nav-links { display: none; } }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <span class="brand">SiYuan 社区</span>
+    <input class="search-box" type="text" placeholder="搜索">
+    <nav class="nav-links">
+      <a href="#" class="active">首页</a>
+      <a href="#">领域</a>
+      <a href="#">问答</a>
+      <a href="#">榜单</a>
+      <a href="#">更新</a>
+    </nav>
+    <span class="spacer"></span>
+    <button class="icon-btn" title="通知">🔔</button>
+    <span class="avatar">U</span>
+  </header>
+
+  <div class="container">
+
+    <!-- 左侧边栏 -->
+    <aside class="sidebar-left">
+      <a href="#">我的帖子</a>
+      <a href="#">收藏帖子</a>
+      <a href="#">关注帖子</a>
+      <a href="#">关注用户</a>
+      <div class="group-title">节点</div>
+      <a href="#">好玩</a>
+      <a href="#">前端</a>
+      <a href="#">后端</a>
+      <a href="#">工作</a>
+      <a href="#">B3</a>
+      <div class="group-title">更多</div>
+      <a href="#">推介</a>
+      <a href="#">活动</a>
+    </aside>
+
+    <!-- 中间帖子列表 -->
+    <main class="main">
+      <div class="post">
+        <span class="avatar">A</span>
+        <div class="post-body">
+          <div class="post-title">为什么 AGENT 不说人话之：论术语膨胀问题</div>
+          <div class="post-preview">想象一个典型场景：你与 Agent 协作处理一个复杂项目，前几轮还很顺畅，到了第十轮，Agent 突然开始频繁使用「增量投影」「配置收敛阶段」...</div>
+          <div class="post-meta"><span class="count">36</span><span>评论 12</span><span>2 小时前</span></div>
+        </div>
+      </div>
+
+      <div class="post">
+        <span class="avatar">B</span>
+        <div class="post-body">
+          <div class="post-title">易搭——别让 SQL 成为探索笔记的阻碍</div>
+          <div class="post-preview">模子：沉睡的金矿 思源笔记的块级细粒度管理和底层 SQLite 数据库赋予了用户极高的自由度。我曾经兴致勃勃的给重要段落、关键任务和阅读笔记认真打上标签，甚至配置了详细的自定义属性...</div>
+          <div class="post-meta"><span class="count">258</span><span>评论 46</span><span>3 小时前</span></div>
+        </div>
+      </div>
+
+      <div class="post">
+        <span class="avatar">C</span>
+        <div class="post-body">
+          <div class="post-title">思源笔记搜索后双击打开文件会覆盖当前标签页</div>
+          <div class="post-preview">思源笔记搜索后双击打开不能用新的标签页？现在打开会覆盖当前标签页 文档数量太多了，不想通过左侧的文件树打开文档，采用搜索的方式要便捷一点。我看到了，现在按住 alt 键能够在右侧打开搜索后选中的文档...</div>
+          <div class="post-meta"><span class="count">84</span><span>评论 23</span><span>4 小时前</span></div>
+        </div>
+      </div>
+
+      <div class="post">
+        <span class="avatar">D</span>
+        <div class="post-body">
+          <div class="post-title">思源笔记中积攒了不少文字和表格的截图，用什么 OCR 插件或外部工具？</div>
+          <div class="post-preview">笔记中有些是 ppt 截图，单张图片或批量操作都能接受。现在的 OCR 发展到什么水平了？有没有 ai 辅助版面分析，能够将文字分区域成段落的提取出来？表格还原能力怎么样？最理想是 markdown 表格</div>
+          <div class="post-meta"><span class="count">51</span><span>评论 18</span><span>5 小时前</span></div>
+        </div>
+      </div>
+
+      <div class="post">
+        <span class="avatar">E</span>
+        <div class="post-body">
+          <div class="post-title">v3.7.3 版本钉住无图标</div>
+          <div class="post-preview">使用默认主题，这两个贴都钉住了但是没有任何 ui 显示 [图片]</div>
+          <div class="post-meta"><span class="count">29</span><span>评论 9</span><span>6 小时前</span></div>
+        </div>
+      </div>
+
+      <div class="post">
+        <span class="avatar">F</span>
+        <div class="post-body">
+          <div class="post-title">SiYuan GitHub issue 完成量的日、周、月趋势统计</div>
+          <div class="post-preview">我把 SiYuan GitHub issue 的完成量做了一个历史统计，口径是 state reason=completed，不是所有关闭的 issue；排除了 PR。数据按北京时间汇总，图里分别是每日、每周和每月完成量，橙线是移动平均。总计 16,247 条，时间范围为 2020-09-07 至 2026-08-0...</div>
+          <div class="post-meta"><span class="count">132</span><span>评论 41</span><span>7 小时前</span></div>
+        </div>
+      </div>
+
+      <div class="post">
+        <span class="avatar">G</span>
+        <div class="post-body">
+          <div class="post-title">导出 PDF 排版中图片和文字重叠错位</div>
+          <div class="post-preview">Bug 反馈：导出 PDF 时 Mermaid 流程图发生严重错位重叠 (v3.7.3) 1. 基本信息 软件名称：思源笔记 (SiYuan) 软件版本：v3.7.3（微软商店版）操作系统：Windows 11 测试环境：默认主题...</div>
+          <div class="post-meta"><span class="count">73</span><span>评论 26</span><span>8 小时前</span></div>
+        </div>
+      </div>
+
+      <div class="post">
+        <span class="avatar">H</span>
+        <div class="post-body">
+          <div class="post-title">请教各位大大思源笔记同步的问题</div>
+          <div class="post-preview">我想构建一个基于思源和家庭绿联 NAS 的同步系统。目的是：辅助孩子累积大学各门功课的知识，协助他们进行知识积累。子目标：我们共同看到一个笔记本 PC1：我使用。可以修改笔记本的内容 PC2：孩子使用...</div>
+          <div class="post-meta"><span class="count">66</span><span>评论 31</span><span>9 小时前</span></div>
+        </div>
+      </div>
+
+      <div class="post">
+        <span class="avatar">I</span>
+        <div class="post-body">
+          <div class="post-title">LimitRSS 插件分支开发更新：AI 日报、保存到思源、多端适配全面升级</div>
+          <div class="post-preview">大家好！最近思源集市里新出了一个 LimitRSS 插件，是思源笔记的第二款 RSS 阅读器，这个插件在 RSS 阅读器的基础上添加了 AI 功能。我在前面的使用中发现了一些问题也有一些需求，但 Github 上原作者一直没解决。正好 7 月 31 日 DS V4 flash 正式版更新并适配了 Codex，于是我索...</div>
+          <div class="post-meta"><span class="count">97</span><span>评论 35</span><span>10 小时前</span></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 右侧近期热议 -->
+    <aside class="sidebar-right">
+      <h3>近期热议</h3>
+      <div class="hot-item"><span class="avatar">1</span><span class="text">感觉有点问题这个备注</span></div>
+      <div class="hot-item"><span class="avatar">2</span><span class="text">易搭——别让 SQL 成为探索笔记的阻碍</span></div>
+      <div class="hot-item"><span class="avatar">3</span><span class="text">请教如何使用思源笔记与现在的 AI 智能软件...</span></div>
+      <div class="hot-item"><span class="avatar">4</span><span class="text">最新测试版的这个挂件显示不出来了，大家...</span></div>
+      <div class="hot-item"><span class="avatar">5</span><span class="text">思源笔记搜索后双击打开文件会覆盖当前标签...</span></div>
+      <div class="hot-item"><span class="avatar">6</span><span class="text">思源笔记中积攒了不少文字和表格的截图，...</span></div>
+      <div class="hot-item"><span class="avatar">7</span><span class="text">请教各位大大思源笔记同步的问题</span></div>
+      <div class="hot-item"><span class="avatar">8</span><span class="text">我很喜欢 Kimi-K2.6 ，用它去做日常的写作...</span></div>
+      <div class="hot-item"><span class="avatar">9</span><span class="text">d 大不要把 issue 清零吧，昨天看还是 14...</span></div>
+      <div class="hot-item"><span class="avatar">10</span><span class="text">AI + 思源笔记，效率翻倍！</span></div>
+      <div class="hot-item"><span class="avatar">11</span><span class="text">打通任督二脉的感觉真不一样</span></div>
+      <div class="hot-item"><span class="avatar">12</span><span class="text">D 太猛了，效率惊人，issue 疯狂清理！</span></div>
+    </aside>
+  </div>
+
+</body>
+</html>
