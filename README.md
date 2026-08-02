@@ -39,7 +39,13 @@ node deepseek-prism/scripts/vision.mjs doctor
 node deepseek-prism/scripts/vision.mjs cache stats
 ```
 
-常用选项：`--provider auto|siliconflow|...`、`--json`（调试）、`--no-cache`、`--url`（远程图片）、`--max-chars 520`。
+常用选项：
+
+- `--provider auto|siliconflow|...`：选择 Provider（默认 `auto`）
+- `--json`：调试用，输出解析后的 JSON
+- `--no-cache`：跳过本地缓存
+- `--url`：将 `--image` 视为远程图片 URL
+- `--max-chars 520`：VEP 输出字符预算
 
 ### 环境变量
 
@@ -47,7 +53,9 @@ node deepseek-prism/scripts/vision.mjs cache stats
 | --- | --- |
 | `VISION_PROVIDER` | `auto` 或预设 id，决定降级顺序 |
 | `VISION_REGION` | `cn` / `global`，影响预设优先级 |
-| `VISION_API_KEY` / `VISION_BASE_URL` / `VISION_MODEL` | 全局覆盖（含 `custom` 预设） |
+| `VISION_API_KEY` | 全局覆盖 API Key（配合 `custom` 预设） |
+| `VISION_BASE_URL` | 全局覆盖 Base URL（配合 `custom` 预设） |
+| `VISION_MODEL` | 全局覆盖模型 ID（配合 `custom` 预设） |
 | `VISION_TIMEOUT_MS` | 请求超时（默认见 `vision.mjs`） |
 | `VISION_MAX_OUTPUT_TOKENS` | 输出上限（默认 512，兼容 GLM-4.5V 推理 token） |
 | `VEP_MAX_CHARS` | VEP 紧凑输出字符预算（默认 520） |

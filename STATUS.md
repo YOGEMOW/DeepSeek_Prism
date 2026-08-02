@@ -22,6 +22,7 @@
 - 第六次真实用户测试（2026-08-02）：手绘稿 → HTML 页面还原（`examples/wireframe-page.html`，三个线框界面：MCP中央网关 / MCP权限 / 从JSON导入；黑白线框风格 + 手写文字 + 图标清单）。
 - 开源合规（2026-08-02）：新增 `LICENSE`（MIT，© 2026 YOGIMOV）、`THIRD_PARTY_NOTICES.md`（free-vision-skill / agentic-ai-playground 的 MIT 声明与许可全文，claude-vision-skill 无 LICENSE 仅借鉴思路）、`README.md`；提交 `0093201`。
 - 公开托管（2026-08-02）：GitHub 公开仓库 [YOGEMOW/DeepSeek_Prism](https://github.com/YOGEMOW/DeepSeek_Prism) 创建并推送成功（默认分支 `master`，remote `origin`；`.env` 与 `.vision-cache/` 未入库）。
+- README 排版优化（2026-08-02）：针对窄窗口下“常用选项”长行与表格超长单元格换行错位，改为逐项列表，并将 `VISION_API_KEY / VISION_BASE_URL / VISION_MODEL` 拆分为独立表格行；GitHub 渲染经 HTML 校验正常。
 
 ## 进行中
 
