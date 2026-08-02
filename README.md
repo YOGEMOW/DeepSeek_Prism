@@ -16,7 +16,7 @@
 1. 将 `deepseek-prism/` 复制到技能目录：
 
    ```powershell
-   Copy-Item -Recurse deepseek-prism C:\Users\YOGIMOV\.codex\skills\deepseek-prism
+   Copy-Item -Recurse deepseek-prism C:\Users\用户名\.codex\skills\deepseek-prism
    ```
 
 2. 在项目根创建 `.env`（已 gitignore，不要提交）：
