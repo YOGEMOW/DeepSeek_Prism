@@ -23,6 +23,7 @@
 - 开源合规（2026-08-02）：新增 `LICENSE`（MIT，© 2026 YOGIMOV）、`THIRD_PARTY_NOTICES.md`（free-vision-skill / agentic-ai-playground 的 MIT 声明与许可全文，claude-vision-skill 无 LICENSE 仅借鉴思路）、`README.md`；提交 `0093201`。
 - 公开托管（2026-08-02）：GitHub 公开仓库 [YOGEMOW/DeepSeek_Prism](https://github.com/YOGEMOW/DeepSeek_Prism) 创建并推送成功（默认分支 `master`，remote `origin`；`.env` 与 `.vision-cache/` 未入库）。
 - README 排版优化（2026-08-02）：针对窄窗口下“常用选项”长行与表格超长单元格换行错位，改为逐项列表，并将 `VISION_API_KEY / VISION_BASE_URL / VISION_MODEL` 拆分为独立表格行；GitHub 渲染经 HTML 校验正常。
+- 其余区域检查（2026-08-02）：README 功能/工作原理/文档/安全等区域均为短行，无同类风险；`THIRD_PARTY_NOTICES.md` 声明表格“借鉴范围”长单元格已精简；GitHub 渲染 HTML 复核通过（常用选项列表化、环境变量表格拆分均正常）。
 
 ## 进行中
 
