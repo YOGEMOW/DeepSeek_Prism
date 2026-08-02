@@ -20,12 +20,13 @@
 - 第七次真实用户测试（2026-08-02）：图片描述（十万个为什么/数学1-1.png）；识别为黑白线描插图——戴高顶礼帽人物、木箱与带指针的秤，无文字。
 - 更名（2026-08-02）：项目目录 DeepSeek_Vision → DeepSeek_Prism；Skill deepseek-vision → deepseek-prism（显示名 “DeepSeek Prism”）；文档、脚本、安装副本同步更新。
 - 第六次真实用户测试（2026-08-02）：手绘稿 → HTML 页面还原（`examples/wireframe-page.html`，三个线框界面：MCP中央网关 / MCP权限 / 从JSON导入；黑白线框风格 + 手写文字 + 图标清单）。
+- 开源合规（2026-08-02）：新增 `LICENSE`（MIT，© 2026 YOGIMOV）、`THIRD_PARTY_NOTICES.md`（free-vision-skill / agentic-ai-playground 的 MIT 声明与许可全文，claude-vision-skill 无 LICENSE 仅借鉴思路）、`README.md`；提交 `0093201`。
+- 公开托管（2026-08-02）：GitHub 公开仓库 [YOGEMOW/DeepSeek_Prism](https://github.com/YOGEMOW/DeepSeek_Prism) 创建并推送成功（默认分支 `master`，remote `origin`；`.env` 与 `.vision-cache/` 未入库）。
 
 ## 进行中
 
-- GitHub 公开仓库创建与推送（2026-08-02）：本地合规文档已补齐并提交；等待 GitHub 认证完成后 `gh repo create --public` + `git push`。
+- 无（v0.1.0 已完成并公开托管）。
 
 ## 待处理
 
-- GitHub 认证（gh token 失效，设备码端点网络受限）与公开仓库推送。
 - Keychain / 自动裁剪 / 更多样例（按需）。
