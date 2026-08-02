@@ -88,4 +88,4 @@ Key 只走 `.env` 或进程环境，绝不进入命令行、日志或提交历�
 
 ## 许可证
 
-本项目采用 [MIT License](LICENSE)（Copyright (c) 2026 YOGIMOV）。参考仓库的版权与许可声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+本项目采用 [MIT License](LICENSE)（Copyright (c) 2026 YOGEMOW）。参考仓库的版权与许可声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

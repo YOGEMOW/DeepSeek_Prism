@@ -4,7 +4,7 @@
 
 ### Added
 
-- `LICENSE`：MIT License（Copyright (c) 2026 YOGIMOV）。
+- `LICENSE`：MIT License（Copyright (c) 2026 YOGEMOW）。
 - `THIRD_PARTY_NOTICES.md`：free-vision-skill（MIT，© 2026 lora-sys）与 agentic-ai-playground（MIT，© 2025 Peng Qian）的版权声明及许可全文；claude-vision-skill（无 LICENSE）仅借鉴思路的说明。
 - `README.md`：项目介绍、功能、安装、使用、环境变量、工作原理与许可证说明（不含真实 Key）。
 
@@ -13,6 +13,10 @@
 - 创建 GitHub 公开仓库 [YOGEMOW/DeepSeek_Prism](https://github.com/YOGEMOW/DeepSeek_Prism)（默认分支 `master`）并推送全部提交。
 - README：`常用选项`长行改为逐项列表；环境变量表格拆分超长单元格（`VISION_API_KEY` / `VISION_BASE_URL` / `VISION_MODEL` 独立成行），提升窄窗口可读性，避免行内代码与中文括号混排换行。
 - `THIRD_PARTY_NOTICES.md`：精简声明表格“借鉴范围”长单元格（移除超长行内代码与冗余描述），降低窄窗口挤压。
+
+### Fixed
+
+- 版权署名统一为 GitHub 账号 YOGEMOW：`LICENSE` / `README.md` / `CHANGELOG.md` / `STATUS.md` / `DECISIONS.md` 中的 `Copyright (c) 2026 YOGIMOV` 修正为 `YOGEMOW`；`C:\Users\YOGIMOV\` 为本机安装路径，不属于账号署名，保留不变。
 
 ### Changed
 

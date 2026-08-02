@@ -64,6 +64,6 @@
 
 ### D11 采用 MIT 许可证并公开托管
 
-- 决策：2026-08-02 起，项目采用 MIT License（Copyright (c) 2026 YOGIMOV），新增根 `README.md` 与 `THIRD_PARTY_NOTICES.md`，并创建 GitHub 公开仓库托管（需完成认证后推送）。
+- 决策：2026-08-02 起，项目采用 MIT License（Copyright (c) 2026 YOGEMOW），新增根 `README.md` 与 `THIRD_PARTY_NOTICES.md`，并创建 GitHub 公开仓库托管（需完成认证后推送）。
 - 原因：两个主要借鉴仓库（free-vision-skill、agentic-ai-playground）均为 MIT，MIT 兼容且传播成本最低；第三方声明满足 MIT“保留版权声明与许可文本”的要求；公开仓库便于分享与协作。
 - 代价：MIT 允许他人自由使用/修改；公开仓库即公开代码（`.env` 与缓存目录仍不提交）；无 LICENSE 的 claude-vision-skill 仅借鉴思路，不复制代码。

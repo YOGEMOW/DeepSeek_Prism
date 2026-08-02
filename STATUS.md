@@ -20,11 +20,12 @@
 - 第七次真实用户测试（2026-08-02）：图片描述（十万个为什么/数学1-1.png）；识别为黑白线描插图——戴高顶礼帽人物、木箱与带指针的秤，无文字。
 - 更名（2026-08-02）：项目目录 DeepSeek_Vision → DeepSeek_Prism；Skill deepseek-vision → deepseek-prism（显示名 “DeepSeek Prism”）；文档、脚本、安装副本同步更新。
 - 第六次真实用户测试（2026-08-02）：手绘稿 → HTML 页面还原（`examples/wireframe-page.html`，三个线框界面：MCP中央网关 / MCP权限 / 从JSON导入；黑白线框风格 + 手写文字 + 图标清单）。
-- 开源合规（2026-08-02）：新增 `LICENSE`（MIT，© 2026 YOGIMOV）、`THIRD_PARTY_NOTICES.md`（free-vision-skill / agentic-ai-playground 的 MIT 声明与许可全文，claude-vision-skill 无 LICENSE 仅借鉴思路）、`README.md`；提交 `0093201`。
+- 开源合规（2026-08-02）：新增 `LICENSE`（MIT，© 2026 YOGEMOW）、`THIRD_PARTY_NOTICES.md`（free-vision-skill / agentic-ai-playground 的 MIT 声明与许可全文，claude-vision-skill 无 LICENSE 仅借鉴思路）、`README.md`；提交 `0093201`。
 - 公开托管（2026-08-02）：GitHub 公开仓库 [YOGEMOW/DeepSeek_Prism](https://github.com/YOGEMOW/DeepSeek_Prism) 创建并推送成功（默认分支 `master`，remote `origin`；`.env` 与 `.vision-cache/` 未入库）。
 - README 排版优化（2026-08-02）：针对窄窗口下“常用选项”长行与表格超长单元格换行错位，改为逐项列表，并将 `VISION_API_KEY / VISION_BASE_URL / VISION_MODEL` 拆分为独立表格行；GitHub 渲染经 HTML 校验正常。
 - 其余区域检查（2026-08-02）：README 功能/工作原理/文档/安全等区域均为短行，无同类风险；`THIRD_PARTY_NOTICES.md` 声明表格“借鉴范围”长单元格已精简；GitHub 渲染 HTML 复核通过（常用选项列表化、环境变量表格拆分均正常）。
 - 发布 v0.1.0（2026-08-02）：GitHub Release `v0.1.0` 创建并推送 tag（CHANGELOG 合并为单一 0.1.0 条目）。
+- 版权署名排查（2026-08-02）：全仓库扫描 YOGIMOV/YOGEMOW——5 处版权署名修正为 `YOGEMOW`（LICENSE/README/CHANGELOG/STATUS/DECISIONS）；`C:\Users\YOGIMOV\` 安装路径为本机目录，保留不变；Release 说明同步更新。
 
 ## 进行中
 
