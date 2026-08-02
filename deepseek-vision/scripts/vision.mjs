@@ -23,8 +23,9 @@ export const DEFAULT_MAX_CHARS = 520;
 export const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
 export const MAX_CACHE_ENTRIES = 1000;
 export const DEFAULT_TIMEOUT_MS = 45000;
+export const DETAIL_TIMEOUT_MS = 150000;
 export const DEFAULT_MAX_TOKENS = 512;
-export const DETAIL_MAX_TOKENS = 2048;
+export const DETAIL_MAX_TOKENS = 4096;
 
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 
@@ -197,7 +198,7 @@ const DETAIL_SECTIONS = {
   chart:
     "E1 图表类型与概述（类型、标题、坐标轴、图例）；E2 数据提取（每个系列的数据点与标签）；E3 趋势与关键发现（极值、变化率、异常点）；E4 元信息（注释、颜色语义）。",
   ui:
-    "A1 页面整体概述；A2 ASCII 布局图（60-80 字符宽盒子图，标注元素与尺寸）；A3 元素逐项描述（位置、尺寸、内容、样式、交互、状态）；A4 颜色与设计 Token；A5 页面文本清单；A6 响应式状态备注。",
+    "按 A1-A7 完整输出，不得遗漏任何区域或图标：A1 页面整体概述；A2 ASCII 布局图（60-80 字符宽盒子图，必须覆盖顶部导航栏、标签栏、左侧/右侧边栏、主内容区、底部区域与浮动元素，标注尺寸）；A3 元素逐项描述（位置、尺寸、内容、样式、交互、状态；每个图标单独描述类型、位置、颜色、尺寸、形状）；A4 颜色与设计 Token（页面级色板 + 每个主要元素的精确十六进制色值，近似值必须标注 (~)）；A5 页面文本清单（从上到下、从左到右全覆盖）；A6 响应式状态备注；A7 图标与图案清单（全部可见图标与图案：emoji、SVG、图片、装饰图形的字符形状、颜色与位置）。",
   general:
     "按问题给出分节事实描述：概述、可见对象、可见文本、关键数值；不确定处标注 (~)。",
 };
@@ -580,6 +581,10 @@ export function defaultMaxTokensFor(detail) {
   return detail ? DETAIL_MAX_TOKENS : DEFAULT_MAX_TOKENS;
 }
 
+export function defaultTimeoutMsFor(detail) {
+  return detail ? DETAIL_TIMEOUT_MS : DEFAULT_TIMEOUT_MS;
+}
+
 function resultToJson(result) {
   const { raw, ...rest } = result;
   return JSON.stringify(rest, null, 2);
@@ -594,7 +599,7 @@ export async function see(args, env = process.env) {
   const detail = Boolean(args.detail);
   const maxTokens = Number(env.VISION_MAX_OUTPUT_TOKENS || defaultMaxTokensFor(detail));
   const maxChars = Number(args["max-chars"] || env.VEP_MAX_CHARS || DEFAULT_MAX_CHARS);
-  const timeoutMs = Number(env.VISION_TIMEOUT_MS || DEFAULT_TIMEOUT_MS);
+  const timeoutMs = Number(env.VISION_TIMEOUT_MS || defaultTimeoutMsFor(detail));
   const mode = inferMode(question);
   const prompt = detail
     ? buildDetailPrompt(question, mode)

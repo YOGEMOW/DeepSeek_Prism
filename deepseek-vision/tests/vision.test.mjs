@@ -10,6 +10,7 @@ import {
   cacheKeyFor,
   cleanRaw,
   defaultMaxTokensFor,
+  defaultTimeoutMsFor,
   extractJson,
   inferMode,
   parseArgs,
@@ -164,7 +165,12 @@ test("parseArgs 解析 --key value 与布尔 flag", () => {
 
 test("defaultMaxTokensFor：detail 模式使用更大输出预算", () => {
   assert.equal(defaultMaxTokensFor(false), 512);
-  assert.equal(defaultMaxTokensFor(true), 2048);
+  assert.equal(defaultMaxTokensFor(true), 4096);
+});
+
+test("defaultTimeoutMsFor：detail 模式使用更长超时", () => {
+  assert.equal(defaultTimeoutMsFor(false), 45000);
+  assert.equal(defaultTimeoutMsFor(true), 150000);
 });
 
 function startMockServer(handler) {

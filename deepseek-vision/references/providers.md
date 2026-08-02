@@ -21,8 +21,8 @@
 | VISION_PROVIDER | auto 或具体 id | auto |
 | VISION_REGION | cn / global | cn |
 | VISION_API_KEY + VISION_BASE_URL + VISION_MODEL | 自定义 OpenAI 兼容端点（优先级最高） | 无 |
-| VISION_TIMEOUT_MS | 单请求超时 | 45000 |
-| VISION_MAX_OUTPUT_TOKENS | 视觉模型输出上限 | 512 |
+| VISION_TIMEOUT_MS | 单请求超时 | 45000（--detail 默认 150000） |
+| VISION_MAX_OUTPUT_TOKENS | 视觉模型输出上限 | 512（--detail 默认 4096） |
 | VEP_MAX_CHARS | VEP 字符预算 | 520 |
 | VISION_CACHE_DIR | 缓存目录 | .vision-cache |
 

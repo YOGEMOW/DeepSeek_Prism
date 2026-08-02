@@ -15,6 +15,7 @@
 - 第二次真实用户测试（2026-08-02）：基于 LSP 诊断截图给出解决方案；`--detail` 正确提取 Pyright reportMissingImports 诊断（auth.py 第 4 行 fastapi 导入失败）。
 - 第三次真实用户测试（2026-08-02）：图表模式解读 Revenue/Earnings Trend 柱线复合图（3Q25–3Q26），正确提取各季度 Revenue 与 Adj EPS 数值及趋势。
 - 第四次真实用户测试（2026-08-02）：设计稿截图 → HTML 页面重建（`examples/design-page.html`，三栏社区论坛）；发现并修复 `--detail` 输出被 512 token 截断的问题（默认提升至 2048）。
+- 第五轮迭代（2026-08-02）：按用户反馈补强 A 模式（A1–A7 图标/图案/标签栏/元素级色值 + 分区补查策略），`--detail` 预算提升至 4096 tokens、超时提升至 150 秒；重新提取设计稿（完整 A1–A7 + 标签栏/图标补查，确认无底部标签栏、含右下角粉色浮动角色）并重建 `examples/design-page.html`（内联 SVG 图标、次级标签栏、浮动角色占位）。
 
 ## 进行中
 
