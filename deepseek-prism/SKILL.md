@@ -1,9 +1,9 @@
 ---
-name: deepseek-vision
+name: deepseek-prism
 description: 当 DeepSeek 等纯文本模型无法直接查看图片时，通过外部视觉 API 提取可见事实并压缩为低 Token 的 VEP/1 视觉证据包，供主模型继续推理。当用户提供图片、截图、UI 设计稿、报错日志截图、图表、海报、扫描件，或提出 OCR / 页面还原 / 图片内问题定位等任务，且当前模型读图失败或本身无视觉能力时使用。Use when a text-only model receives images and cannot inspect pixels directly, or read attempts fail with unsupported format, binary file, or cannot read image signals.
 ---
 
-# DeepSeek Vision
+# DeepSeek Prism
 
 ## 强制协议（遇到图片时必须先执行）
 
@@ -21,7 +21,7 @@ description: 当 DeepSeek 等纯文本模型无法直接查看图片时，通过
 正确做法：
 
 ```text
-我无法直接查看图片，改用 DeepSeek Vision 分析：
+我无法直接查看图片，改用 DeepSeek Prism 分析：
 node <skill路径>/scripts/vision.mjs see --image <图片路径> --question "只提取错误信息和行号"
 ```
 
@@ -31,7 +31,7 @@ node <skill路径>/scripts/vision.mjs see --image <图片路径> --question "只
 node <skill路径>/scripts/vision.mjs see --image <本地路径或URL> --question <一个聚焦问题> [--provider id] [--json] [--no-cache] [--detail] [--max-chars 520]
 ```
 
-安装后的默认路径：`C:\Users\YOGIMOV\.codex\skills\deepseek-vision\scripts\vision.mjs`。Key 从项目根或脚本同目录的 `.env` / 环境变量读取（`SILICONFLOW_API_KEY`、`VISION_API_KEY` 等），脚本内不得读取或打印密钥。
+安装后的默认路径：`C:\Users\YOGIMOV\.codex\skills\deepseek-prism\scripts\vision.mjs`。Key 从项目根或脚本同目录的 `.env` / 环境变量读取（`SILICONFLOW_API_KEY`、`VISION_API_KEY` 等），脚本内不得读取或打印密钥。
 
 ## 查询模板（一次只问一个聚焦问题）
 

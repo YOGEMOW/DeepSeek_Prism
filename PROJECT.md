@@ -4,7 +4,7 @@
 
 ### 目标
 
-DeepSeek_Vision 是一个为纯文本 AI 模型（当前主要为 Codex 中的 DeepSeek `deepseek-v4-flash`）提供按需识图能力的 Skill：
+DeepSeek_Prism 是一个为纯文本 AI 模型（当前主要为 Codex 中的 DeepSeek `deepseek-v4-flash`）提供按需识图能力的 Skill：
 
 - 当主模型无法直接读取图片像素时，通过外部视觉 API 提取可见事实，压缩为低 Token 的 VEP/1 视觉证据包回传主模型推理。
 - 视觉模型只负责“看见”，主模型继续负责思考、规划、编码与最终决策。
@@ -13,9 +13,9 @@ DeepSeek_Vision 是一个为纯文本 AI 模型（当前主要为 Codex 中的 D
 
 ### 范围
 
-- 独立项目 `E:\Git\repositoris\DeepSeek_Vision`，长期维护六份文档（PROJECT / PLAN / STATUS / DECISIONS / RISKS / CHANGELOG）+ AGENTS.md。
-- Skill 本体 `deepseek-vision/`：SKILL.md 触发协议、`scripts/vision.mjs` 零依赖 CLI、`references/` 模式与 Provider 文档、样例图片、单元与 mock 测试。
-- 安装到 `C:\Users\YOGIMOV\.codex\skills\deepseek-vision` 供 Codex 自动发现。
+- 独立项目 `E:\Git\repositoris\DeepSeek_Prism`，长期维护六份文档（PROJECT / PLAN / STATUS / DECISIONS / RISKS / CHANGELOG）+ AGENTS.md。
+- Skill 本体 `deepseek-prism/`：SKILL.md 触发协议、`scripts/vision.mjs` 零依赖 CLI、`references/` 模式与 Provider 文档、样例图片、单元与 mock 测试。
+- 安装到 `C:\Users\YOGIMOV\.codex\skills\deepseek-prism` 供 Codex 自动发现。
 - 视觉 Provider：SiliconFlow `zai-org/GLM-4.5V`（测试首选）等 OpenAI 兼容接口。
 
 ### 非目标 / 边界约束

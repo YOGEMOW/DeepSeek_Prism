@@ -2,6 +2,10 @@
 
 ## [未发布] 2026-08-02（v0.1.0 初始版本）
 
+### Changed
+
+- 项目与 Skill 更名：项目目录 `DeepSeek_Vision` → `DeepSeek_Prism`；Skill `deepseek-vision` → `deepseek-prism`；界面显示名改为 “DeepSeek Prism”；安装路径同步为 `C:\Users\YOGIMOV\.codex\skills\deepseek-prism`。历史条目保留原名。
+
 ### Added
 
 - 项目文档：PROJECT / PLAN / STATUS / DECISIONS / RISKS / CHANGELOG + AGENTS.md（任务开始读 PROJECT/STATUS/DECISIONS，完成更新 STATUS）。

@@ -1,7 +1,0 @@
-interface:
-  display_name: "DeepSeek Vision"
-  short_description: "为纯文本模型提供低 Token 识图证据包（VEP/1）"
-  default_prompt: "Use $deepseek-vision to analyze the attached image and answer from its Visual Evidence Packet."
-
-policy:
-  allow_implicit_invocation: true

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * deepseek-vision 视觉证据编译器（零依赖，Node >= 18）
+ * deepseek-prism 视觉证据编译器（零依赖，Node >= 18）
  *
  * 用法:
  *   node vision.mjs see --image <路径或URL> --question <问题> [--provider id] [--json] [--no-cache] [--detail] [--max-chars 520]
@@ -663,7 +663,7 @@ async function commandProviders(env = process.env) {
 }
 
 async function commandDoctor(env = process.env) {
-  const lines = ["DeepSeek Vision doctor", ""];
+  const lines = ["DeepSeek Prism doctor", ""];
   let healthy = 0;
   let total = 0;
   for (const provider of PROVIDERS) {
@@ -701,7 +701,7 @@ async function commandDoctor(env = process.env) {
 }
 
 function usage() {
-  return `DeepSeek Vision Skill
+  return `DeepSeek Prism Skill
 
 用法:
   node vision.mjs see --image <路径或URL> --question "<聚焦问题>" [--provider id] [--json] [--no-cache] [--detail] [--max-chars 520] [--url]

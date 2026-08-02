@@ -36,8 +36,8 @@ VISION_PROVIDER=auto
 VISION_REGION=cn
 ```
 
-2. 验证：`node deepseek-vision/scripts/vision.mjs doctor`
-3. 查看可用 Provider：`node deepseek-vision/scripts/vision.mjs providers`
+2. 验证：`node deepseek-prism/scripts/vision.mjs doctor`
+3. 查看可用 Provider：`node deepseek-prism/scripts/vision.mjs providers`
 
 ## 排查
 
