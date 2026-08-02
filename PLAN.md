@@ -8,10 +8,11 @@
 2. 可行性验证：实测 SiliconFlow `zai-org/GLM-4.5V` 返回带 `<|begin_of_box|>` 包裹的 JSON 与 reasoning tokens。
 3. 项目初始化：`git init`、六份文档、AGENTS.md、Skill 骨架（init_skill.py）。
 4. Skill 实现与验证：SKILL.md / references / agents/openai.yaml / `scripts/vision.mjs` 完成；12 项单元与 mock 测试通过；quick_validate 通过；SiliconFlow 真实冒烟（error / ocr / ui / --detail）通过。
+5. 安装与提交：Skill 复制安装到 `C:\Users\YOGIMOV\.codex\skills\deepseek-vision`；初始提交 `1a3f3d0`。
 
 ### 当前进行中
 
-- 安装到 `C:\Users\YOGIMOV\.codex\skills\deepseek-vision`（复制命令：`Copy-Item -Recurse deepseek-vision\* ...`），初始提交。
+- 无（v0.1.0 已完成）。
 
 ### 后续待办
 
