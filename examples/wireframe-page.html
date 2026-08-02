@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP 管理后台 — 手绘稿还原</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "KaiTi", "STKaiti", "楷体", "Comic Sans MS", cursive;
+      background: #ffffff;
+      color: #000000;
+      padding: 24px;
+    }
+    .page-title {
+      text-align: center;
+      font-size: 20px;
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+    }
+    .board {
+      display: flex;
+      gap: 24px;
+      justify-content: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    /* 单个线框界面 */
+    .screen {
+      width: 300px;
+      border: 2px solid #000;
+      background: #fff;
+      box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.15);
+      flex-shrink: 0;
+    }
+    .screen-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #000;
+      padding: 6px 10px;
+      font-size: 14px;
+      min-height: 34px;
+    }
+    .screen-header .greet { font-size: 12px; opacity: 0.75; }
+    .screen-body { display: flex; min-height: 300px; }
+
+    /* 左侧导航 */
+    .nav {
+      width: 86px;
+      flex-shrink: 0;
+      border-right: 2px solid #000;
+      padding: 6px 0;
+    }
+    .nav-item {
+      padding: 7px 8px;
+      font-size: 13px;
+      border-bottom: 1px dashed #000;
+      white-space: nowrap;
+    }
+    .nav-item:last-child { border-bottom: none; }
+
+    /* 主内容区 */
+    .main { flex: 1; padding: 8px 10px; min-width: 0; }
+    .field-label { font-size: 12px; margin: 6px 0 2px; }
+    .input {
+      border: 1.5px solid #000;
+      height: 22px;
+      padding: 0 6px;
+      font-family: inherit;
+      font-size: 12px;
+      width: 100%;
+      background: #fff;
+      border-radius: 0;
+    }
+    .input-row { display: flex; gap: 4px; align-items: center; }
+    .input-row .input { flex: 1; }
+    .mini-btn {
+      width: 22px; height: 22px;
+      border: 1.5px solid #000;
+      background: #fff;
+      font-size: 13px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .hint {
+      font-size: 11px;
+      margin: 8px 0;
+      line-height: 1.5;
+    }
+    .desc {
+      font-size: 12px;
+      line-height: 1.6;
+      margin: 8px 0;
+      opacity: 0.8;
+    }
+    .pager {
+      font-size: 12px;
+      margin-top: 10px;
+      border: 1.5px solid #000;
+      display: inline-block;
+      padding: 2px 8px;
+    }
+
+    /* 表格 */
+    table.wf-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+    table.wf-table th, table.wf-table td {
+      border: 1.5px solid #000;
+      padding: 4px 6px;
+      text-align: left;
+    }
+    table.wf-table th { font-weight: normal; }
+    .download {
+      display: inline-block;
+      border: 1.5px solid #000;
+      padding: 1px 6px;
+      font-size: 11px;
+      margin-left: 4px;
+    }
+
+    /* 大文本域与按钮 */
+    .textarea {
+      width: 100%;
+      height: 110px;
+      border: 1.5px solid #000;
+      background: #fff;
+      font-family: inherit;
+      resize: none;
+    }
+    .btn-row { display: flex; gap: 10px; margin-top: 10px; }
+    .btn {
+      border: 1.5px solid #000;
+      background: #fff;
+      padding: 4px 18px;
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .watermark {
+      margin-top: 22px;
+      text-align: right;
+      font-size: 12px;
+      opacity: 0.45;
+    }
+
+    @media (max-width: 700px) {
+      .board { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-title">MCP 管理后台 · 手绘稿还原</div>
+
+  <div class="board">
+
+    <!-- 界面 1：MCP 中央网关 -->
+    <section class="screen">
+      <div class="screen-header">
+        <span>MCP中央网关</span>
+        <span class="greet">你好taka 😊</span>
+      </div>
+      <div class="screen-body">
+        <nav class="nav">
+          <div class="nav-item">首页</div>
+          <div class="nav-item">MCP管理</div>
+          <div class="nav-item">分级管理</div>
+          <div class="nav-item">设置 <span class="download">下载</span></div>
+        </nav>
+        <div class="main">
+          <div class="field-label">APIKEY</div>
+          <div class="field-label">管理 API KEY</div>
+          <div class="field-label">创建时间</div>
+          <table class="wf-table">
+            <thead>
+              <tr><th>名称</th><th>KEY</th><th>最近</th><th>删除目标</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+              <tr><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+              <tr><td>…</td><td>…</td><td>…</td><td>…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 界面 2：MCP 权限 -->
+    <section class="screen">
+      <div class="screen-header">
+        <span>MCP权限</span>
+        <span class="greet">晚上好taka 😊</span>
+      </div>
+      <div class="screen-body">
+        <nav class="nav">
+          <div class="nav-item">首页</div>
+          <div class="nav-item">MCP管理</div>
+          <div class="nav-item">分级管理</div>
+          <div class="nav-item">设置</div>
+        </nav>
+        <div class="main">
+          <div class="field-label">MCP服务</div>
+          <div class="input-row">
+            <input class="input" type="text">
+            <button class="mini-btn" title="新增">+</button>
+            <button class="mini-btn" title="搜索">🔍</button>
+          </div>
+          <div class="field-label">MCP名称</div>
+          <input class="input" type="text">
+          <div class="field-label">版本传输</div>
+          <input class="input" type="text">
+          <div class="desc">这里是MCP描述，这里是MCP描述</div>
+          <div class="pager">&lt;1,2,...(last)&gt;</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 界面 3：从 JSON 导入 -->
+    <section class="screen">
+      <div class="screen-header">
+        <span>从JSON导入</span>
+        <span></span>
+      </div>
+      <div class="screen-body">
+        <div class="main">
+          <div class="hint">*请从MCP Server的介绍页面复制配置JSON，并粘贴到输入框中</div>
+          <textarea class="textarea"></textarea>
+          <div class="btn-row">
+            <button class="btn">保存</button>
+            <button class="btn">确定</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="watermark">知乎 @寒先生</div>
+
+</body>
+</html>
