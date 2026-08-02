@@ -11,6 +11,7 @@
 - 真实冒烟（SiliconFlow zai-org/GLM-4.5V）：error / ocr / ui 三类 VEP 输出正确，--detail 分节报告正确；修复紧凑 VEP 丢失 m 字段、模型照抄示例置信度两个问题。
 - 安装：Skill 复制到 `C:\Users\YOGIMOV\.codex\skills\deepseek-vision`（含最终版 vision.mjs，不含 .env）。
 - 提交：初始提交 `1a3f3d0`（17 文件；`.env` 与 `.vision-cache/` 未被跟踪）；临时克隆目录已清理。
+- 首次真实用户测试（2026-08-02）：解释用户提供的 Unity Asset Store 截图，`--detail` 模式正确输出资源详情页的概述、对象、文本与数值。
 
 ## 进行中
 
