@@ -1,6 +1,6 @@
 # CHANGELOG.md
 
-## [未发布] 2026-08-02（开源合规）
+## [0.1.0] 2026-08-02
 
 ### Added
 
@@ -13,8 +13,6 @@
 - 创建 GitHub 公开仓库 [YOGEMOW/DeepSeek_Prism](https://github.com/YOGEMOW/DeepSeek_Prism)（默认分支 `master`）并推送全部提交。
 - README：`常用选项`长行改为逐项列表；环境变量表格拆分超长单元格（`VISION_API_KEY` / `VISION_BASE_URL` / `VISION_MODEL` 独立成行），提升窄窗口可读性，避免行内代码与中文括号混排换行。
 - `THIRD_PARTY_NOTICES.md`：精简声明表格“借鉴范围”长单元格（移除超长行内代码与冗余描述），降低窄窗口挤压。
-
-## [未发布] 2026-08-02（v0.1.0 初始版本）
 
 ### Changed
 
