@@ -15,7 +15,7 @@ DeepSeek_Prism 是一个为纯文本 AI 模型（当前主要为 Codex 中的 De
 
 - 独立项目 `E:\Git\repositoris\DeepSeek_Prism`，长期维护六份文档（PROJECT / PLAN / STATUS / DECISIONS / RISKS / CHANGELOG）+ AGENTS.md。
 - Skill 本体 `deepseek-prism/`：SKILL.md 触发协议、`scripts/vision.mjs` 零依赖 CLI、`references/` 模式与 Provider 文档、样例图片、单元与 mock 测试。
-- 安装到 `C:\Users\YOGIMOV\.codex\skills\deepseek-prism` 供 Codex 自动发现。
+- 安装到 `C:\Users\用户名\.codex\skills\deepseek-prism` 供 Codex 自动发现。
 - 视觉 Provider：SiliconFlow `zai-org/GLM-4.5V`（测试首选）等 OpenAI 兼容接口。
 
 ### 非目标 / 边界约束

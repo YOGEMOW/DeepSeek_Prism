@@ -4,7 +4,7 @@
 
 ### D1 独立项目 + 安装到 Codex skills
 
-- 决策：`E:\Git\repositoris\DeepSeek_Vision` 独立 Git 项目，六份文档 + AGENTS.md；Skill 复制安装到 `C:\Users\YOGIMOV\.codex\skills\deepseek-vision`。
+- 决策：`E:\Git\repositoris\DeepSeek_Vision` 独立 Git 项目，六份文档 + AGENTS.md；Skill 复制安装到 `C:\Users\用户名\.codex\skills\deepseek-vision`。
 - 原因：与工作区其他项目（如 LimitRSS）一致；文档与代码同库可追溯；Codex 自动发现技能需要 skills 目录。
 - 代价：安装需手动同步（安装命令记录在 PLAN.md）。
 
@@ -58,7 +58,7 @@
 
 ### D10 项目与 Skill 更名 DeepSeek_Prism
 
-- 决策：2026-08-02 起，项目目录更名为 `E:\Git\repositoris\DeepSeek_Prism`，Skill 名称由 `deepseek-vision` 改为 `deepseek-prism`，界面显示名 “DeepSeek Prism”，安装路径同步为 `C:\Users\YOGIMOV\.codex\skills\deepseek-prism`；此决策取代 D1 中的旧名称/路径。
+- 决策：2026-08-02 起，项目目录更名为 `E:\Git\repositoris\DeepSeek_Prism`，Skill 名称由 `deepseek-vision` 改为 `deepseek-prism`，界面显示名 “DeepSeek Prism”，安装路径同步为 `C:\Users\用户名\.codex\skills\deepseek-prism`；此决策取代 D1 中的旧名称/路径。
 - 原因：用户要求统一命名，突出“棱镜”式的视觉证据折射定位。
 - 代价：历史提交与文档中的旧名称保留原样（不重写历史），仅当前状态文档与新增记录使用新名称。
 

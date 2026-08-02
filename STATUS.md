@@ -9,7 +9,7 @@
 - `scripts/vision.mjs` 完成：see / providers / cache / doctor；VEP/1 编译与字符预算；本地模式推断；多 Provider 预设与自动降级；SHA-256 缓存（TTL 24h / 1000 条）；盒子标记剥离与容错 JSON 解析。
 - 测试：12 项单元与 mock 端到端全部通过；skill-creator quick_validate 通过。
 - 真实冒烟（SiliconFlow zai-org/GLM-4.5V）：error / ocr / ui 三类 VEP 输出正确，--detail 分节报告正确；修复紧凑 VEP 丢失 m 字段、模型照抄示例置信度两个问题。
-- 安装：Skill 复制到 `C:\Users\YOGIMOV\.codex\skills\deepseek-prism`（含最终版 vision.mjs，不含 .env）。
+- 安装：Skill 复制到 `C:\Users\用户名\.codex\skills\deepseek-prism`（含最终版 vision.mjs，不含 .env）。
 - 提交：初始提交 `1a3f3d0`（17 文件；`.env` 与 `.vision-cache/` 未被跟踪）；临时克隆目录已清理。
 - 首次真实用户测试（2026-08-02）：解释用户提供的 Unity Asset Store 截图，`--detail` 模式正确输出资源详情页的概述、对象、文本与数值。
 - 第二次真实用户测试（2026-08-02）：基于 LSP 诊断截图给出解决方案；`--detail` 正确提取 Pyright reportMissingImports 诊断（auth.py 第 4 行 fastapi 导入失败）。
@@ -25,7 +25,8 @@
 - README 排版优化（2026-08-02）：针对窄窗口下“常用选项”长行与表格超长单元格换行错位，改为逐项列表，并将 `VISION_API_KEY / VISION_BASE_URL / VISION_MODEL` 拆分为独立表格行；GitHub 渲染经 HTML 校验正常。
 - 其余区域检查（2026-08-02）：README 功能/工作原理/文档/安全等区域均为短行，无同类风险；`THIRD_PARTY_NOTICES.md` 声明表格“借鉴范围”长单元格已精简；GitHub 渲染 HTML 复核通过（常用选项列表化、环境变量表格拆分均正常）。
 - 发布 v0.1.0（2026-08-02）：GitHub Release `v0.1.0` 创建并推送 tag（CHANGELOG 合并为单一 0.1.0 条目）。
-- 版权署名排查（2026-08-02）：全仓库扫描 YOGIMOV/YOGEMOW——5 处版权署名修正为 `YOGEMOW`（LICENSE/README/CHANGELOG/STATUS/DECISIONS）；`C:\Users\YOGIMOV\` 安装路径为本机目录，保留不变；Release 说明同步更新。
+- 版权署名排查（2026-08-02）：全仓库扫描 YOGIMOV/YOGEMOW——5 处版权署名修正为 `YOGEMOW`（LICENSE/README/CHANGELOG/STATUS/DECISIONS）；Release 说明同步更新。
+- 本机路径通用化（2026-08-02）：全部文档中的用户目录路径统一为 `C:\Users\用户名\`（SKILL.md / PROJECT.md / PLAN.md / STATUS.md / DECISIONS.md / CHANGELOG.md），移除原真实用户名，安装副本同步。
 
 ## 进行中
 

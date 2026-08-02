@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [未发布] 2026-08-02
+
+### Changed
+
+- 文档中的本机路径统一为通用写法 `C:\Users\用户名\`（SKILL.md / PROJECT.md / PLAN.md / STATUS.md / DECISIONS.md / CHANGELOG.md），移除原真实用户名，便于公开分享与隐私保护；安装副本 SKILL.md 同步更新。
+
 ## [0.1.0] 2026-08-02
 
 ### Added
@@ -16,11 +22,11 @@
 
 ### Fixed
 
-- 版权署名统一为 GitHub 账号 YOGEMOW：`LICENSE` / `README.md` / `CHANGELOG.md` / `STATUS.md` / `DECISIONS.md` 中的 `Copyright (c) 2026 YOGIMOV` 修正为 `YOGEMOW`；`C:\Users\YOGIMOV\` 为本机安装路径，不属于账号署名，保留不变。
+- 版权署名统一为 GitHub 账号 YOGEMOW：`LICENSE` / `README.md` / `CHANGELOG.md` / `STATUS.md` / `DECISIONS.md` 中的 `Copyright (c) 2026 YOGIMOV` 修正为 `YOGEMOW`；安装路径使用通用写法 `C:\Users\用户名\`（详见未发布条目）。
 
 ### Changed
 
-- 项目与 Skill 更名：项目目录 `DeepSeek_Vision` → `DeepSeek_Prism`；Skill `deepseek-vision` → `deepseek-prism`；界面显示名改为 “DeepSeek Prism”；安装路径同步为 `C:\Users\YOGIMOV\.codex\skills\deepseek-prism`。历史条目保留原名。
+- 项目与 Skill 更名：项目目录 `DeepSeek_Vision` → `DeepSeek_Prism`；Skill `deepseek-vision` → `deepseek-prism`；界面显示名改为 “DeepSeek Prism”；安装路径同步为 `C:\Users\用户名\.codex\skills\deepseek-prism`。历史条目保留原名。
 
 ### Added
 

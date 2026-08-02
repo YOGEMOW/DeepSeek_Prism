@@ -31,7 +31,7 @@ node <skill路径>/scripts/vision.mjs see --image <图片路径> --question "只
 node <skill路径>/scripts/vision.mjs see --image <本地路径或URL> --question <一个聚焦问题> [--provider id] [--json] [--no-cache] [--detail] [--max-chars 520]
 ```
 
-安装后的默认路径：`C:\Users\YOGIMOV\.codex\skills\deepseek-prism\scripts\vision.mjs`。Key 从项目根或脚本同目录的 `.env` / 环境变量读取（`SILICONFLOW_API_KEY`、`VISION_API_KEY` 等），脚本内不得读取或打印密钥。
+安装后的默认路径：`C:\Users\用户名\.codex\skills\deepseek-prism\scripts\vision.mjs`。Key 从项目根或脚本同目录的 `.env` / 环境变量读取（`SILICONFLOW_API_KEY`、`VISION_API_KEY` 等），脚本内不得读取或打印密钥。
 
 ## 查询模板（一次只问一个聚焦问题）
 
