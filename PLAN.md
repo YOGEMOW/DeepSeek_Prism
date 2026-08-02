@@ -25,5 +25,5 @@
 
 1. 先读 PROJECT.md、STATUS.md、DECISIONS.md。
 2. 按 PLAN 实施；完成后更新 STATUS.md；仅新长期决策写入 DECISIONS.md；不重写历史。
-3. 运行 `node --test tests/` 与 `python <skill-creator>/scripts/quick_validate.py deepseek-vision`。
+3. 运行 `node --test tests/`（在 deepseek-vision 目录）与 `python <skill-creator>/scripts/quick_validate.py deepseek-vision`（Windows 上需先 `$env:PYTHONUTF8='1'`，否则脚本按 GBK 读 UTF-8 文件报错）。
 4. 更新 CHANGELOG.md 后提交。
