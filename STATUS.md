@@ -23,8 +23,9 @@
 
 ## 进行中
 
-- 无（v0.1.0 已完成）。
+- GitHub 公开仓库创建与推送（2026-08-02）：本地合规文档已补齐并提交；等待 GitHub 认证完成后 `gh repo create --public` + `git push`。
 
 ## 待处理
 
-- Keychain / 自动裁剪 / 更多样例 / 远程推送（按需）。
+- GitHub 认证（gh token 失效，设备码端点网络受限）与公开仓库推送。
+- Keychain / 自动裁剪 / 更多样例（按需）。

@@ -1,5 +1,13 @@
 # CHANGELOG.md
 
+## [未发布] 2026-08-02（开源合规）
+
+### Added
+
+- `LICENSE`：MIT License（Copyright (c) 2026 YOGIMOV）。
+- `THIRD_PARTY_NOTICES.md`：free-vision-skill（MIT，© 2026 lora-sys）与 agentic-ai-playground（MIT，© 2025 Peng Qian）的版权声明及许可全文；claude-vision-skill（无 LICENSE）仅借鉴思路的说明。
+- `README.md`：项目介绍、功能、安装、使用、环境变量、工作原理与许可证说明（不含真实 Key）。
+
 ## [未发布] 2026-08-02（v0.1.0 初始版本）
 
 ### Changed

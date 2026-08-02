@@ -61,3 +61,9 @@
 - 决策：2026-08-02 起，项目目录更名为 `E:\Git\repositoris\DeepSeek_Prism`，Skill 名称由 `deepseek-vision` 改为 `deepseek-prism`，界面显示名 “DeepSeek Prism”，安装路径同步为 `C:\Users\YOGIMOV\.codex\skills\deepseek-prism`；此决策取代 D1 中的旧名称/路径。
 - 原因：用户要求统一命名，突出“棱镜”式的视觉证据折射定位。
 - 代价：历史提交与文档中的旧名称保留原样（不重写历史），仅当前状态文档与新增记录使用新名称。
+
+### D11 采用 MIT 许可证并公开托管
+
+- 决策：2026-08-02 起，项目采用 MIT License（Copyright (c) 2026 YOGIMOV），新增根 `README.md` 与 `THIRD_PARTY_NOTICES.md`，并创建 GitHub 公开仓库托管（需完成认证后推送）。
+- 原因：两个主要借鉴仓库（free-vision-skill、agentic-ai-playground）均为 MIT，MIT 兼容且传播成本最低；第三方声明满足 MIT“保留版权声明与许可文本”的要求；公开仓库便于分享与协作。
+- 代价：MIT 允许他人自由使用/修改；公开仓库即公开代码（`.env` 与缓存目录仍不提交）；无 LICENSE 的 claude-vision-skill 仅借鉴思路，不复制代码。
