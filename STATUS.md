@@ -28,9 +28,14 @@
 - 版权署名排查（2026-08-02）：全仓库扫描 YOGIMOV/YOGEMOW——5 处版权署名修正为 `YOGEMOW`（LICENSE/README/CHANGELOG/STATUS/DECISIONS）；Release 说明同步更新。
 - 本机路径通用化（2026-08-02）：全部文档中的用户目录路径统一为 `C:\Users\用户名\`（SKILL.md / PROJECT.md / PLAN.md / STATUS.md / DECISIONS.md / CHANGELOG.md），移除原真实用户名，安装副本同步。
 
+
+
+
+
+- 发布 v0.1.1（2026-08-04）：密钥查找扩展（环境变量 / 运行目录 / 脚本目录 / 技能根目录 `.env`）；`No credential` 报错与 `doctor` 命令列出 `.env` 查找位置；SKILL.md 新增“密钥配置（必读）”并同步 README 安装说明；CHANGELOG 合并 0.1.1；GitHub Release `v0.1.1` 创建并推送 tag。
 ## 进行中
 
-- 无（v0.1.0 已完成并公开托管）。
+- 无（v0.1.1 已完成并公开托管）。
 
 ## 待处理
 

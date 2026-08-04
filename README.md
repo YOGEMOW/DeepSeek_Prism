@@ -19,13 +19,16 @@
    Copy-Item -Recurse deepseek-prism C:\Users\用户名\.codex\skills\deepseek-prism
    ```
 
-2. 在项目根创建 `.env`（已 gitignore，不要提交）：
+2. 配置密钥（任选其一，脚本按顺序查找：环境变量 → 运行目录 `.env` → 脚本目录 `.env` → 技能根目录 `.env`）：
 
    ```env
    SILICONFLOW_API_KEY=sk-xxxx
    VISION_PROVIDER=auto
    VISION_REGION=cn
    ```
+
+   - 或设置用户环境变量 `SILICONFLOW_API_KEY`（推荐，所有项目通用）；
+   - 或在技能根目录（SKILL.md 所在目录）创建 `.env`（写入同样内容）。
 
 3. 让 Codex 重新加载技能列表（按 Codex 技能发现机制刷新）。
 

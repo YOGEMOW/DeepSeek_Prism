@@ -1,10 +1,15 @@
 # CHANGELOG.md
 
-## [未发布] 2026-08-02
+## [0.1.1] 2026-08-04
 
 ### Changed
 
 - 文档中的本机路径统一为通用写法 `C:\Users\用户名\`（SKILL.md / PROJECT.md / PLAN.md / STATUS.md / DECISIONS.md / CHANGELOG.md），移除原真实用户名，便于公开分享与隐私保护；安装副本 SKILL.md 同步更新。
+
+### Fixed
+
+- 密钥查找优化：`vision.mjs` 现在依次检查环境变量、运行目录 `.env`、脚本目录（scripts/）`.env`、技能根目录 `.env`；`No credential` 报错会列出实际查找位置，`doctor` 命令新增 `.env 查找位置` 展示。
+- 配置说明完善：`SKILL.md` 新增“密钥配置（必读）”一节；README 安装说明补充备选配置方式（用户环境变量 / 技能根目录 `.env`）。
 
 ## [0.1.0] 2026-08-02
 
