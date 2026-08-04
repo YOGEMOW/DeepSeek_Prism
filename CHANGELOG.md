@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [未发布] 2026-08-04
+
+### Changed
+
+- 项目约定：所有命令行操作统一使用 PowerShell 7（`pwsh`），不使用 Windows PowerShell 5.1；AGENTS.md 新增约定第 7 条，DECISIONS 记录 D12。
+
 ## [0.1.1] 2026-08-04
 
 ### Changed

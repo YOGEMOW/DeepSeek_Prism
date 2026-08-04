@@ -67,3 +67,9 @@
 - 决策：2026-08-02 起，项目采用 MIT License（Copyright (c) 2026 YOGEMOW），新增根 `README.md` 与 `THIRD_PARTY_NOTICES.md`，并创建 GitHub 公开仓库托管（需完成认证后推送）。
 - 原因：两个主要借鉴仓库（free-vision-skill、agentic-ai-playground）均为 MIT，MIT 兼容且传播成本最低；第三方声明满足 MIT“保留版权声明与许可文本”的要求；公开仓库便于分享与协作。
 - 代价：MIT 允许他人自由使用/修改；公开仓库即公开代码（`.env` 与缓存目录仍不提交）；无 LICENSE 的 claude-vision-skill 仅借鉴思路，不复制代码。
+
+### D12 统一使用 PowerShell 7（pwsh）
+
+- 决策：2026-08-04 起，项目内所有命令行操作统一使用 PowerShell 7（`pwsh`），不使用 Windows PowerShell 5.1（`powershell.exe`）。
+- 原因：本机 Codex 执行器与用户要求均以 `pwsh` 为准；PS7 默认 UTF-8 编码处理与 `Get-Content -Raw -Encoding utf8` 等行为一致，避免 5.1 的 ANSI/GBK 编码差异与旧语法限制。
+- 代价：依赖 5.1 特性的旧命令需调整为 PS7 语法；文档示例与执行约定需同步标注 `pwsh`。
