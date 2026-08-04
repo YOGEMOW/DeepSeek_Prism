@@ -5,6 +5,25 @@ description: 当 DeepSeek 等纯文本模型无法直接查看图片时，通过
 
 # DeepSeek Prism
 
+## 密钥配置（必读）
+
+首次使用前必须配置至少一个视觉服务的 API 密钥，否则所有识别都会失败。三种方式任选其一（按查找顺序）：
+
+1. 用户环境变量（推荐）：设置 `SILICONFLOW_API_KEY`（或其他 Provider 的 `*_API_KEY`）。
+2. 技能根目录 `.env`：在本技能根目录（SKILL.md 所在目录）创建 `.env`：
+   ```
+   SILICONFLOW_API_KEY=你的密钥
+   ```
+3. 运行目录 `.env`：在运行 `vision.mjs` 的当前目录放 `.env`（适合按项目隔离密钥）。
+
+脚本实际查找顺序：环境变量 → 运行目录 `.env` → 脚本目录（scripts/）`.env` → 技能根目录 `.env`。配置后可用以下命令验证（不会打印密钥）：
+
+```bash
+node <技能路径>/scripts/vision.mjs providers
+node <技能路径>/scripts/vision.mjs doctor
+```
+
+密钥属于敏感信息，请勿把密钥内容发到对话或提交到仓库。
 ## 强制协议（遇到图片时必须先执行）
 
 1. 先尝试直接查看/读取图片（视图工具或文件读取）。

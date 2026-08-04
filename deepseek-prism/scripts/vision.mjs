@@ -117,6 +117,7 @@ export function loadDotEnv(env = process.env) {
   const files = [
     path.join(process.cwd(), ".env"),
     path.join(SCRIPT_DIR, ".env"),
+    path.join(SCRIPT_DIR, "..", ".env"),
   ];
   for (const file of files) {
     if (!existsSync(file)) continue;
@@ -145,6 +146,14 @@ export function loadDotEnv(env = process.env) {
 }
 
 // ---------- 文本与模式 ----------
+
+export function dotEnvSearchPaths() {
+  return [
+    path.join(process.cwd(), ".env"),
+    path.join(SCRIPT_DIR, ".env"),
+    path.join(SCRIPT_DIR, "..", ".env"),
+  ];
+}
 
 export function normalizeQuestion(value) {
   return String(value || "")
@@ -273,7 +282,8 @@ export function providerRuntime(provider, env = process.env) {
   const apiKey = env[provider.apiKeyEnv] || "";
   if (!apiKey) {
     throw new Error(
-      `No credential for ${provider.id}。设置环境变量 ${provider.apiKeyEnv}（或项目根 .env）。`
+      `No credential for ${provider.id}。请设置环境变量 ${provider.apiKeyEnv}，或在以下任一位置放置 .env：
+${dotEnvSearchPaths().join("\n")}`
     );
   }
   const baseUrl = (env.VISION_BASE_URL || provider.baseUrl).replace(/\/+$/, "");
@@ -663,7 +673,7 @@ async function commandProviders(env = process.env) {
 }
 
 async function commandDoctor(env = process.env) {
-  const lines = ["DeepSeek Prism doctor", ""];
+  const lines = ["DeepSeek Prism doctor", "", ".env 查找位置:", ...dotEnvSearchPaths().map((p) => "  " + p), ""];
   let healthy = 0;
   let total = 0;
   for (const provider of PROVIDERS) {
