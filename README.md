@@ -7,6 +7,9 @@
 - 强制触发协议：主模型无法直接读图（Unsupported format / 无法读取 / binary）时，立即调用 `scripts/vision.mjs` 识图。
 - VEP/1 紧凑证据：默认输出 ≤520 字符（约 50–150 tokens），字段按优先级裁剪。
 - `--detail` 五模式分节报告：页面还原（A1–A7）/ 问题定位 / 报错日志 / 文本表格 / 图表数据。
+- 自动分级：小图/简单任务默认 VEP/1；长内容（代码截图、长日志、文档、宽/高比大的图）自动走 `--detail` 完整通道；超长内容自动续写并合并。
+- 程序化输出：`--raw` 输出清洗后的原文；`--full` 输出 `{raw, parsed}` JSON 信封。
+- 输入预处理：解析图片宽高（含 AVIF/TIFF/SVG 的 sharp metadata 回退），超过 2048px 时用 Codex 内置 sharp（libvips）等比缩放后再上传，不依赖宿主安装 Python 等工具；动画 GIF 缩放后保留全部帧，AVIF/TIFF/SVG 统一转为 PNG 保证视觉 API 兼容。
 - 多 Provider 预设与自动降级：SiliconFlow（测试首选）/ 智谱 / ModelScope / 阿里 / OpenRouter / Groq。
 - SHA-256 本地缓存：TTL 24 小时、上限 1000 条，`--no-cache` 可跳过。
 - 零运行时依赖：仅需 Node.js >= 18（内置 fetch / crypto / node:test）。
@@ -32,11 +35,29 @@
 
 3. 让 Codex 重新加载技能列表（按 Codex 技能发现机制刷新）。
 
+运行要求：Node.js >= 18（内置 fetch / node:test）；缩放使用 Codex 桌面运行时自带的 sharp，无需额外安装。
+
+### 纯 CLI 环境可选：安装 sharp（仅大图缩放需要）
+
+Codex 桌面运行时自带 sharp，开箱即用。若在纯 CLI 环境使用且需要大图等比缩放：
+
+```powershell
+# 方式一：安装到技能目录（脚本会自动查找 deepseek-prism/node_modules/sharp）
+cd deepseek-prism
+npm install sharp
+
+# 方式二：安装到其他位置后指定路径
+$env:VISION_SHARP_PATH = "D:\tools\node_modules\sharp"
+```
+
+未安装 sharp 时脚本仍可正常识别图片并调用视觉 API，只是超过 `VISION_RESIZE_MAX` 的大图不做缩放（stderr 会警告）；`node vision.mjs doctor` 可查看当前缩放后端状态。
+
 ## 使用
 
 ```powershell
 node deepseek-prism/scripts/vision.mjs see --image <路径或URL> --question "<聚焦问题>"
 node deepseek-prism/scripts/vision.mjs see --image <路径> --question "<聚焦问题>" --detail
+node deepseek-prism/scripts/vision.mjs see --image <路径> --question "<聚焦问题>" --full
 node deepseek-prism/scripts/vision.mjs providers
 node deepseek-prism/scripts/vision.mjs doctor
 node deepseek-prism/scripts/vision.mjs cache stats
@@ -49,6 +70,9 @@ node deepseek-prism/scripts/vision.mjs cache stats
 - `--no-cache`：跳过本地缓存
 - `--url`：将 `--image` 视为远程图片 URL
 - `--max-chars 520`：VEP 输出字符预算
+- `--compact`：强制紧凑 VEP/1 输出（与 `--detail`/`--full` 同传时后者优先）
+- `--raw`：只输出清洗后的原始文本
+- `--full`：隐含完整通道，输出 `{raw, parsed}` JSON 信封
 
 ### 环境变量
 
@@ -60,8 +84,14 @@ node deepseek-prism/scripts/vision.mjs cache stats
 | `VISION_BASE_URL` | 全局覆盖 Base URL（配合 `custom` 预设） |
 | `VISION_MODEL` | 全局覆盖模型 ID（配合 `custom` 预设） |
 | `VISION_TIMEOUT_MS` | 请求超时（默认见 `vision.mjs`） |
-| `VISION_MAX_OUTPUT_TOKENS` | 输出上限（默认 512，兼容 GLM-4.5V 推理 token） |
+| `VISION_MAX_OUTPUT_TOKENS` | 输出上限覆盖（默认 compact 512 / detail 按 Provider：SiliconFlow 等 4096，OpenRouter/Groq 8192） |
 | `VEP_MAX_CHARS` | VEP 紧凑输出字符预算（默认 520） |
+| `VISION_DETAIL_AUTO` | 自动分级开关：`auto` / `always` / `never`（默认 `auto`） |
+| `VISION_MAX_CONTINUATIONS` | 超长内容续写次数上限（默认 8；设为 0 关闭续写） |
+| `VISION_RESIZE_TOOL` | 大图缩放后端：`auto` / `sharp` / `skip`（默认 `auto`，找不到内置 sharp 时跳过并在 stderr 警告） |
+| `VISION_RESIZE_MAX` | 大图缩放边长阈值（默认 2048px） |
+| `VISION_MAX_INPUT_PIXELS` | 输入像素上限，超过则跳过缩放（默认 268435456，即 sharp 默认解压上限） |
+| `VISION_SHARP_PATH` | 可选：手动指定 sharp 包路径（默认自动查找 Codex 运行时） |
 
 Key 只走 `.env` 或进程环境，绝不进入命令行、日志或提交历史。
 
@@ -71,7 +101,9 @@ Key 只走 `.env` 或进程环境，绝不进入命令行、日志或提交历�
 2. 本地关键词推断模式（error / ocr / ui / chart / general）并构造受限 prompt：只报可见事实、不解决任务、无思维链。
 3. 视觉 API 返回后，解析器剥离 `<|begin_of_box|>/<|end_of_box|>` 与代码围栏，容错提取 JSON。
 4. 默认编译为 VEP/1 证据（`src/m/a/t/s/o/e/v/c`）回传主模型；`--detail` 输出分节报告。
-5. 同一图片+问题命中缓存时直接复用结果。
+5. 长内容任务自动切换完整通道；输出被截断时以锚点续写、合并，直到模型回答“没有更多内容”。
+6. 超 2048px 的图片用内置 sharp 等比缩放后再上传（动画 GIF 保留全部帧），节省流量与 API 费用；旧版本缓存条目自动清理。
+7. 同一图片+问题+输出通道命中缓存时直接复用结果。
 
 ## 文档
 

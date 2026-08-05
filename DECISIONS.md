@@ -73,3 +73,15 @@
 - 决策：2026-08-04 起，项目内所有命令行操作统一使用 PowerShell 7（`pwsh`），不使用 Windows PowerShell 5.1（`powershell.exe`）。
 - 原因：本机 Codex 执行器与用户要求均以 `pwsh` 为准；PS7 默认 UTF-8 编码处理与 `Get-Content -Raw -Encoding utf8` 等行为一致，避免 5.1 的 ANSI/GBK 编码差异与旧语法限制。
 - 代价：依赖 5.1 特性的旧命令需调整为 PS7 语法；文档示例与执行约定需同步标注 `pwsh`。
+
+### D13 输出策略自动分级与续写
+
+- 决策：2026-08-05 起，默认输出按任务自动分级——小图/简单任务保持 VEP/1（≤520 字符）；长内容任务（宽/高比 ≥ 2.5 或问题命中长内容词）自动走 `--detail` 完整通道；完整通道下检测到输出无自然结束标记时，用上一段结尾为锚点自动续写（上限 8 次），直到模型回复“没有更多内容”后合并。提供 `--compact`、`VISION_DETAIL_AUTO` 显式控制。
+- 原因：一次调用难以同时满足“便宜快”与“长内容完整”；自动分级省去用户手动加 `--detail` 和手动分段，续写解决 4096 token 仍被截断的长日志/代码场景。
+- 代价：默认行为会随图片尺寸/问题自动切换，可能比旧版多一次调用；续写依赖模型对 `[完成]` 哨兵与自然结束标记的配合，需保留 `[截断]` 兜底。
+
+### D14 内置 sharp 大图缩放后端（不依赖宿主环境）
+
+- 决策：2026-08-05 起，超过 `VISION_RESIZE_MAX`（默认 2048px）的图片通过 `VISION_RESIZE_TOOL=auto|sharp|skip`（默认 auto）等比缩放后再上传；`auto` 自动查找 Codex 桌面运行时自带 sharp（libvips），不依赖宿主安装 Python/Pillow 等外部工具；找不到 sharp 时跳过并在 stderr 警告，不阻塞主流程。
+- 原因：Node 内置能力无法真实解码/重编码位图，引入 npm 依赖违背 D4 零依赖决策；依赖宿主 Python 会让不同用户机器行为不一致；sharp 由 Codex 运行时统一提供，多用户无需安装。
+- 代价：非 Codex 桌面环境下（纯 CLI 且未安装 sharp）只做尺寸检测不缩放；可通过 `VISION_SHARP_PATH` 手动指定；动画 GIF 使用 `animated: true` 缩放，保留全部帧，缩放失败时回退上传原图，绝不静默丢帧；AVIF/TIFF/SVG 等自有解析器不识别的格式通过 sharp metadata 回退识别尺寸并参与缩放，缩放后统一转 PNG；`VISION_MAX_INPUT_PIXELS` 限制超大输入（2026-08-05 补充）。

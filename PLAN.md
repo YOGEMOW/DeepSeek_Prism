@@ -26,5 +26,5 @@
 
 1. 先读 PROJECT.md、STATUS.md、DECISIONS.md。
 2. 按 PLAN 实施；完成后更新 STATUS.md；仅新长期决策写入 DECISIONS.md；不重写历史。
-3. 运行 `node --test tests/`（在 deepseek-prism 目录）与 `python <skill-creator>/scripts/quick_validate.py deepseek-prism`（Windows 上需先 `$env:PYTHONUTF8='1'`，否则脚本按 GBK 读 UTF-8 文件报错）。
+3. 运行 `node --test`（在 deepseek-prism 目录；Node 18+ 自动发现测试，兼容 Node 18/20/22/24）与 `python <skill-creator>/scripts/quick_validate.py deepseek-prism`（Windows 上需先 `$env:PYTHONUTF8='1'`，否则脚本按 GBK 读 UTF-8 文件报错）。若提示 `No module named 'yaml'`，先执行 `python -m pip install pyyaml` 再重试。
 4. 更新 CHANGELOG.md 后提交。

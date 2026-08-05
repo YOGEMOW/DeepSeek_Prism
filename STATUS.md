@@ -31,9 +31,12 @@
 - 约定更新（2026-08-04）：AGENTS.md 新增“统一使用 PowerShell 7（pwsh）”约定（第 7 条）；DECISIONS 记录 D12；CHANGELOG 追加未发布条目。
 
 - 发布 v0.1.1（2026-08-04）：密钥查找扩展（环境变量 / 运行目录 / 脚本目录 / 技能根目录 `.env`）；`No credential` 报错与 `doctor` 命令列出 `.env` 查找位置；SKILL.md 新增“密钥配置（必读）”并同步 README 安装说明；CHANGELOG 合并 0.1.1；GitHub Release `v0.1.1` 创建并推送 tag。
+
+- 输出策略自动分级与续写（2026-08-05，随 v0.2.0 发布）：小图/简单任务保持 VEP/1；长内容自动走 `--detail` 完整通道；超长自动续写合并（`VISION_MAX_CONTINUATIONS` 可调，默认 8，合并时折叠重复围栏）；新增 `--raw` / `--full` / `--compact` 与 `VISION_DETAIL_AUTO`；字段预算随 `--max-chars` 缩放并带 `[截断]` 标记；图片宽高解析（含 AVIF/TIFF/SVG 的 sharp metadata 回退）与内置 sharp 等比缩放（不依赖宿主环境，动画 GIF 保留全部帧，AVIF/TIFF/SVG 统一转 PNG，`VISION_MAX_INPUT_PIXELS` 防超大输入）；Provider `outputLimit` 感知（OpenRouter/Groq 8192）；缓存 key 按输出通道隔离，旧格式条目自动清理，缓存原子写，`--no-cache` 不再写缓存；测试命令统一为 `node --test` 兼容 Node 18/20/22/24；`doctor` 输出 Node 版本与缩放后端状态；审计 11 项缺陷全部修复并补回归测试；测试扩至 42 项全部通过；skill-creator quick_validate 通过（PyYAML 6.0.3）；SiliconFlow 真实冒烟通过（VEP / 自动 detail / --full / 大图缩放 / 256 token 强制截断下 5 次调用真实续写合并）。
+- 发布 v0.2.0（2026-08-05）：自动分级与续写、`--raw`/`--full`/`--compact`、字段预算缩放与截断标记、内置 sharp 缩放（AVIF/TIFF/SVG 回退转 PNG、像素上限）、Provider `outputLimit`、缓存清理与原子写、Node 多版本兼容、11 项审计缺陷修复；42 项测试与 quick_validate 通过；真实冒烟通过；已同步安装副本并推送 GitHub Release。
 ## 进行中
 
-- 无（v0.1.1 已完成并公开托管）。
+- 无（v0.2.0 已发布）。
 
 ## 待处理
 

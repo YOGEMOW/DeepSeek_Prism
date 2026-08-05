@@ -1,15 +1,17 @@
 # Provider 预设与配置
 
-## 预设表（v0.1.0）
+## 预设表（v0.2.0）
 
-| id | 服务 | 区域 | 默认模型 | Key 环境变量 |
-| --- | --- | --- | --- | --- |
-| siliconflow | SiliconFlow | cn | zai-org/GLM-4.5V | SILICONFLOW_API_KEY |
-| zhipu | 智谱 BigModel | cn | glm-4.6v-flash | ZHIPU_API_KEY |
-| modelscope | ModelScope | cn | Qwen/Qwen3-VL-8B-Instruct | MODELSCOPE_API_KEY |
-| alibaba | 阿里百炼 DashScope | cn | qwen3-vl-flash | DASHSCOPE_API_KEY |
-| openrouter | OpenRouter | global | nvidia/nemotron-nano-12b-v2-vl:free | OPENROUTER_API_KEY |
-| groq | GroqCloud | global | qwen/qwen3.6-27b | GROQ_API_KEY |
+| id | 服务 | 区域 | 默认模型 | Key 环境变量 | detail 输出上限 |
+| --- | --- | --- | --- | --- | --- |
+| siliconflow | SiliconFlow | cn | zai-org/GLM-4.5V | SILICONFLOW_API_KEY | 4096 |
+| zhipu | 智谱 BigModel | cn | glm-4.6v-flash | ZHIPU_API_KEY | 4096 |
+| modelscope | ModelScope | cn | Qwen/Qwen3-VL-8B-Instruct | MODELSCOPE_API_KEY | 4096 |
+| alibaba | 阿里百炼 DashScope | cn | qwen3-vl-flash | DASHSCOPE_API_KEY | 4096 |
+| openrouter | OpenRouter | global | nvidia/nemotron-nano-12b-v2-vl:free | OPENROUTER_API_KEY | 8192 |
+| groq | GroqCloud | global | qwen/qwen3.6-27b | GROQ_API_KEY | 8192 |
+
+说明：`supportsDetail` 只控制请求中是否传 OpenAI 风格 `detail:"low"` 参数，不阻止任何 Provider 使用 `--detail` 输出通道；SiliconFlow 等 `supportsDetail: false` 的 Provider 同样支持完整模式。`VISION_MAX_OUTPUT_TOKENS` 可覆盖上表的 detail 输出上限。
 
 降级顺序：指定 provider 时只尝试该 provider；`auto` 时先当前区域（默认 cn）按优先级，再跨区域。
 
@@ -22,8 +24,14 @@
 | VISION_REGION | cn / global | cn |
 | VISION_API_KEY + VISION_BASE_URL + VISION_MODEL | 自定义 OpenAI 兼容端点（优先级最高） | 无 |
 | VISION_TIMEOUT_MS | 单请求超时 | 45000（--detail 默认 150000） |
-| VISION_MAX_OUTPUT_TOKENS | 视觉模型输出上限 | 512（--detail 默认 4096） |
+| VISION_MAX_OUTPUT_TOKENS | 视觉模型输出上限覆盖 | compact 512 / detail 按上表 Provider 上限 |
 | VEP_MAX_CHARS | VEP 字符预算 | 520 |
+| VISION_DETAIL_AUTO | 自动分级：auto / always / never | auto |
+| VISION_MAX_CONTINUATIONS | 续写次数上限（0 关闭续写） | 8 |
+| VISION_RESIZE_TOOL | 大图缩放后端：auto / sharp / skip | auto |
+| VISION_RESIZE_MAX | 大图缩放边长阈值 | 2048 |
+| VISION_MAX_INPUT_PIXELS | 输入像素上限（超过则跳过缩放） | 268435456 |
+| VISION_SHARP_PATH | 手动指定 sharp 包路径（默认自动查找 Codex 运行时） | 无 |
 | VISION_CACHE_DIR | 缓存目录 | .vision-cache |
 
 ## 配置步骤

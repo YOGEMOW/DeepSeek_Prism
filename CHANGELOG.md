@@ -1,10 +1,53 @@
 # CHANGELOG.md
 
-## [未发布] 2026-08-04
+## [0.2.0] 2026-08-05
+
+### Added
+
+- 输出策略自动分级：小图/简单任务保持 VEP/1（≤520 字符）；长内容任务（代码截图、长日志、文档、宽/高比 ≥ 2.5 的截图或问题命中长内容词）自动走 `--detail` 完整通道（默认 4096 token）。
+- 超长内容自动续写：检测 `finish_reason=length` 或无自然结束标记（括号不平衡、尾随分隔符）时，以上一段结尾 200 字符为锚点再次调用，直到模型回复 `[完成]`/“没有更多内容”，合并输出；上限 8 次续写，仍不完整时末尾标注 `[截断]`。
+- 新增 `--raw`（输出 cleanRaw 原文）与 `--full`（隐含 detail，输出 `{raw, parsed}` JSON 信封）；新增 `--compact` 强制紧凑 VEP/1。
+- 图片宽高解析（PNG/JPEG/GIF/WebP/BMP + AVIF/TIFF/SVG 的 sharp metadata 回退）与内置 sharp 等比缩放：`VISION_RESIZE_TOOL=auto|sharp|skip`、`VISION_RESIZE_MAX`（默认 2048），自动查找 Codex 运行时自带 sharp（libvips），不依赖宿主安装 Python/Pillow；动画 GIF 缩放后保留全部帧，SVG 缩放后栅格化为 PNG。
+- Provider `outputLimit` 感知：SiliconFlow/智谱/ModelScope/阿里 detail 上限 4096，OpenRouter/Groq 8192；`VISION_MAX_OUTPUT_TOKENS` 仍可覆盖。
+- `VISION_DETAIL_AUTO=auto|always|never` 控制自动分级；`vepFieldBudget()` 字段预算随 `--max-chars` 缩放（答案 45%、文本 35%、摘要 25%）。
+- `VISION_MAX_CONTINUATIONS` 可配置续写次数上限（默认 8，0 关闭续写）；`doctor` 输出 Node 版本与图片缩放后端状态，便于多端环境排查。
 
 ### Changed
 
+- 字段截断与 VEP 压缩路径显式追加 `[截断]` 标记，不再静默停在单词中间。
+- 缓存 key 增加输出通道参数（`vep`/`detail`），避免两种模式结果互串；旧缓存条目自然过期。
+- 缓存条目增加版本号（CACHE_VERSION=2）：旧格式、过期、损坏条目在读取/淘汰/统计时自动清理。
+- 修复 `--no-cache` 语义：不再在请求后写回缓存（原实现只删除后仍会重新写入）。
+- `callVision` 新增 `withMeta` 选项返回 `{text, finishReason}`（默认仍返回字符串，导出接口兼容）。
+
+### Fixed
+
+- `--json` 与自动 detail 组合现在始终返回解析后的 JSON（原先返回 Markdown 原文）。
+- 新增 `VISION_MAX_INPUT_PIXELS` 输入像素上限（默认 268MP）并恢复 sharp 解压防护，超大/恶意图片跳过缩放。
+- `VISION_MAX_CONTINUATIONS=0` 现在真正关闭续写（原先 0 会回退默认 8）。
+- `--full` 的 `parsed` 不再被 `extractJson` 的 1000 字符回退截断。
+- AVIF/TIFF 缩放后统一转 PNG，避免部分视觉 API 拒绝 heif/tiff data URL。
+- 续写段只剥离盒子标记、不再逐段剥离代码围栏，跨段代码块合并后围栏保留。
+- 续写合并时折叠相邻重复围栏（` ```\n``` ` 合并为单个），避免段边界围栏重复。
+- 首段仅返回 `[完成]` 时不再输出空串。
+- `loadSharp` 失败后不再缓存失败状态，设置 `VISION_SHARP_PATH` 后可在同进程重试。
+- usage 明确 `--detail`/`--full` 优先于 `--compact`。
+- 极小 `--max-chars` 下字段预算不再超过总预算。
+- 缓存写入改为临时文件 + rename 原子写，损坏/半写入条目自动按 miss 清理。
+
+### Docs
+
+- SKILL.md / README / references/modes.md / references/providers.md 同步自动分级、续写、`--raw`/`--full`、内置 sharp 缩放、`VISION_MAX_INPUT_PIXELS` 与 Provider 上限说明。
+- AGENTS.md / PLAN.md / RISKS.md 补充 `quick_validate.py` 缺 PyYAML 时的安装指引（`python -m pip install pyyaml`），方便新环境 AI 及时安装。
 - 项目约定：所有命令行操作统一使用 PowerShell 7（`pwsh`），不使用 Windows PowerShell 5.1；AGENTS.md 新增约定第 7 条，DECISIONS 记录 D12。
+- AGENTS.md / PLAN.md / PROJECT.md 测试命令统一为 `node --test`，明确 Node >= 18（兼容 18/20/22/24），解决多用户不同 Node 版本下 `node --test tests/` 不识别目录参数的问题。
+- DECISIONS 新增 D13（自动分级与续写）、D14（内置 sharp 缩放后端）；RISKS 记录范围外问题。
+
+### Test
+
+- `node --test` 42 项全部通过（含 sharp 缩放、GIF 动画帧保留、AVIF/TIFF/SVG 尺寸回退、旧缓存清理、`--no-cache` 不写缓存、重复围栏折叠，以及 10 项审计缺陷的失败→通过回归）。
+- skill-creator `quick_validate.py` 通过（本机已安装 PyYAML 6.0.3）。
+- SiliconFlow 真实冒烟通过：VEP / 自动 detail / `--full` / 大图缩放，以及真实续写（256 token 上限下 5 次 API 调用自动合并 4213 字符，无 `[截断]`）。
 
 ## [0.1.1] 2026-08-04
 

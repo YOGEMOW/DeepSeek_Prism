@@ -29,5 +29,5 @@ DeepSeek_Prism 是一个为纯文本 AI 模型（当前主要为 Codex 中的 De
 ### 运行环境
 
 - 主模型：DeepSeek `deepseek-v4-flash`（纯文本，无图像输入能力）。
-- 运行环境：Windows + Node >= 18（本机 Node v22）。
+- 运行环境：Windows + Node >= 18（本机 Node v24；测试命令用 `node --test` 自动发现，兼容 Node 18/20/22/24）。
 - 视觉 API：OpenAI 兼容 `chat/completions`，默认 `https://api.siliconflow.cn/v1` + `zai-org/GLM-4.5V`。
