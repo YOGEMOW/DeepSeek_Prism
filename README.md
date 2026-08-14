@@ -1,31 +1,41 @@
 # DeepSeek_Prism
 
-为纯文本 DeepSeek 模型（如 `deepseek-v4-flash`）提供按需识图能力的 Skill + DSH 插件：图片由外部视觉 API 提取事实，压缩为低 Token 的 **VEP/2 多模式证据包**回传主模型，由主模型继续完成推理、规划与决策。
+为纯文本 DeepSeek 模型（如 `deepseek-v4-flash`）提供按需识图能力的 Codex / DeepSeek Harness（DSH）双平台 Skill：图片由外部视觉 API 提取可见事实，压缩为低 Token 的 VEP/1 视觉证据包回传主模型，由主模型继续完成推理、规划与决策。
 
 ## 功能
 
 - 强制触发协议：主模型无法直接读图（Unsupported format / 无法读取 / binary）时，立即调用 `scripts/vision.mjs` 识图。
-- **VEP/2 八模式**（意图自动推断）：`qa` 带意图问答 / `ocr` 长截图完整文本 / `ui` 界面还原（含 `g` 元素定位坐标）/ `grounding` 对象边界框 / `diff` 双图像素差异（`d` 区域）/ `error` 报错日志 / `chart` 图表 / `general` 完整事实描述；`art` 可携带可交付产物（如 UI 还原 HTML）。
-- 自适应预算：按图片字节分三档（512/1024/2048 token），输出触顶自动升级重试，小图省 token、长文完整。
+- VEP/1 紧凑证据：默认输出 ≤520 字符（约 50–150 tokens），字段按优先级裁剪。
 - `--detail` 五模式分节报告：页面还原（A1–A7）/ 问题定位 / 报错日志 / 文本表格 / 图表数据。
+- 自动分级：小图/简单任务默认 VEP/1；长内容（代码截图、长日志、文档、宽/高比大的图）自动走 `--detail` 完整通道；超长内容自动续写并合并。
+- 程序化输出：`--raw` 输出清洗后的原文；`--full` 输出 `{raw, parsed}` JSON 信封。
+- 输入预处理：解析图片宽高（含 AVIF/TIFF/SVG 的 sharp metadata 回退），超过 2048px 时用 sharp（libvips）等比缩放后再上传，不依赖宿主安装 Python 等工具；sharp 自动查找 Codex 桌面运行时 / DSH Web 运行时（`~/.dsh/profiles/node_modules/sharp`）/ 技能目录 `node_modules/sharp`（或 `VISION_SHARP_PATH` 指定）；动画 GIF 缩放后保留全部帧，AVIF/TIFF/SVG 统一转为 PNG 保证视觉 API 兼容。
 - 多 Provider 预设与自动降级：SiliconFlow（测试首选）/ 智谱 / ModelScope / 阿里 / OpenRouter / Groq。
 - SHA-256 本地缓存：TTL 24 小时、上限 1000 条，`--no-cache` 可跳过。
 - 零运行时依赖：仅需 Node.js >= 18（内置 fetch / crypto / node:test）。
-- DSH 插件形态（GUI）：设置卡片配置密钥/模型/显示开关，发图自动识别（原图保留在对话中、VEP 折叠为链接、执行链进度卡片、用量/消耗显示）。
 
 ## 安装
 
-1. 将 `deepseek-prism/` 复制到技能目录：
+v0.4.0 起按平台分开发布两个包（GitHub Release 资产，见 [Releases](https://github.com/YOGEMOW/DeepSeek_Prism/releases)）：
 
-   ```powershell
-   Copy-Item -Recurse deepseek-prism C:\Users\用户名\.codex\skills\deepseek-prism
-   ```
+- **DSH（DeepSeek Harness）**：`@yogemow/deepseek-prism-dsh`（Cordis 插件，运行时注册技能 + 纯文本模型图片降级）：
 
-   - DeepSeek Harness（DSH）：复制到 `C:\Users\用户名\.dsh\skills\deepseek-prism`（即 `$DSH_HOME/skills`），由 harness 的 `skill` 工具自动发现，脚本路径以该工具返回的 `resourceBase.path` 为准。
+  ```powershell
+  pnpm dsh plugin --profile web add https://github.com/YOGEMOW/DeepSeek_Prism/releases/download/v0.4.1/deepseek-prism-dsh-0.4.1.tgz
+  ```
 
-   - DeepSeek Harness 插件形态（推荐 GUI 使用）：先应用 harness 前置补丁（见下文「另一台机器部署」），再在 deepseek-harness checkout 下执行 `pnpm dsh plugin --profile web add <本仓库>\dsh-plugin`，重启 web 服务后，在 设置 → 插件 → 可配置 中填写视觉 API 密钥与模型。详见 [dsh-plugin/README.md](dsh-plugin/README.md)。
+  插件启动时把包内技能注册进 `ctx.skills`（资源基准目录指向包内素材，不向技能根写副本）并包装图片降级；重启 GUI 后即可使用。也可手动复制 `deepseek-prism/` 到 `C:\Users\用户名\.dsh\skills\deepseek-prism`。
 
-2. 配置密钥（任选其一，脚本按顺序查找：环境变量 → 运行目录 `.env` → 脚本目录 `.env` → 技能根目录 `.env`）：
+- **Codex**：`@yogemow/deepseek-prism-skill`（含一键安装 CLI）：
+
+  ```powershell
+  npx @yogemow/deepseek-prism-skill   # 从 GitHub Release 资产安装：
+  npx https://github.com/YOGEMOW/DeepSeek_Prism/releases/download/v0.4.0/deepseek-prism-skill-0.4.0.tgz
+   # 或指定目标目录：npx deepseek-prism-skill --dest D:\skills
+   # 手动方式：Copy-Item -Recurse deepseek-prism C:\Users\用户名\.codex\skills\deepseek-prism
+  ```
+
+1. 配置密钥（任选其一，脚本按顺序查找：环境变量 → 运行目录 `.env` → 脚本目录 `.env` → 技能根目录 `.env`）：
 
    ```env
    SILICONFLOW_API_KEY=sk-xxxx
@@ -36,13 +46,31 @@
    - 或设置用户环境变量 `SILICONFLOW_API_KEY`（推荐，所有项目通用）；
    - 或在技能根目录（SKILL.md 所在目录）创建 `.env`（写入同样内容）。
 
-3. 让 Codex 重新加载技能列表（按 Codex 技能发现机制刷新）。
+2. 让宿主重新加载技能列表（Codex 按技能发现机制刷新；DSH 的 skill-filesystem watcher 自动发现新目录，无需重启）。
+
+运行要求：Node.js >= 18（内置 fetch / node:test）；缩放自动使用 Codex 桌面运行时 / DSH Web 运行时自带的 sharp，无需额外安装。
+
+### 纯 CLI 环境可选：安装 sharp（仅大图缩放需要）
+
+Codex 桌面运行时与 DSH Web 运行时均自带 sharp，开箱即用。若在纯 CLI 环境（两者都没有）使用且需要大图等比缩放：
+
+```powershell
+# 方式一：安装到技能目录（脚本会自动查找 deepseek-prism/node_modules/sharp）
+cd deepseek-prism
+npm install sharp
+
+# 方式二：安装到其他位置后指定路径
+$env:VISION_SHARP_PATH = "D:\tools\node_modules\sharp"
+```
+
+未安装 sharp 时脚本仍可正常识别图片并调用视觉 API，只是超过 `VISION_RESIZE_MAX` 的大图不做缩放（stderr 会警告）；`node vision.mjs doctor` 可查看当前缩放后端状态。
 
 ## 使用
 
 ```powershell
 node deepseek-prism/scripts/vision.mjs see --image <路径或URL> --question "<聚焦问题>"
 node deepseek-prism/scripts/vision.mjs see --image <路径> --question "<聚焦问题>" --detail
+node deepseek-prism/scripts/vision.mjs see --image <路径> --question "<聚焦问题>" --full
 node deepseek-prism/scripts/vision.mjs providers
 node deepseek-prism/scripts/vision.mjs doctor
 node deepseek-prism/scripts/vision.mjs cache stats
@@ -55,6 +83,9 @@ node deepseek-prism/scripts/vision.mjs cache stats
 - `--no-cache`：跳过本地缓存
 - `--url`：将 `--image` 视为远程图片 URL
 - `--max-chars 520`：VEP 输出字符预算
+- `--compact`：强制紧凑 VEP/1 输出（与 `--detail`/`--full` 同传时后者优先）
+- `--raw`：只输出清洗后的原始文本
+- `--full`：隐含完整通道，输出 `{raw, parsed}` JSON 信封
 
 ### 环境变量
 
@@ -66,50 +97,26 @@ node deepseek-prism/scripts/vision.mjs cache stats
 | `VISION_BASE_URL` | 全局覆盖 Base URL（配合 `custom` 预设） |
 | `VISION_MODEL` | 全局覆盖模型 ID（配合 `custom` 预设） |
 | `VISION_TIMEOUT_MS` | 请求超时（默认见 `vision.mjs`） |
-| `VISION_MAX_OUTPUT_TOKENS` | 输出上限（默认 512，兼容 GLM-4.5V 推理 token） |
+| `VISION_MAX_OUTPUT_TOKENS` | 输出上限覆盖（默认 compact 512 / detail 按 Provider：SiliconFlow 等 4096，OpenRouter/Groq 8192） |
 | `VEP_MAX_CHARS` | VEP 紧凑输出字符预算（默认 520） |
+| `VISION_DETAIL_AUTO` | 自动分级开关：`auto` / `always` / `never`（默认 `auto`） |
+| `VISION_MAX_CONTINUATIONS` | 超长内容续写次数上限（默认 8；设为 0 关闭续写） |
+| `VISION_RESIZE_TOOL` | 大图缩放后端：`auto` / `sharp` / `skip`（默认 `auto`，找不到内置 sharp 时跳过并在 stderr 警告） |
+| `VISION_RESIZE_MAX` | 大图缩放边长阈值（默认 2048px） |
+| `VISION_MAX_INPUT_PIXELS` | 输入像素上限，超过则跳过缩放（默认 268435456，即 sharp 默认解压上限） |
+| `VISION_SHARP_PATH` | 可选：手动指定 sharp 包路径（默认自动查找 Codex 运行时 / DSH Web 运行时 / 技能目录 node_modules） |
 
 Key 只走 `.env` 或进程环境，绝不进入命令行、日志或提交历史。
 
 ## 工作原理
 
 1. SKILL.md 触发：主模型发现无法读取图片 → 调用 `vision.mjs see`。
-2. 关键词推断八种模式（qa / ocr / ui / grounding / diff / error / chart / general）并构造受限 prompt：只报可见事实、不解决任务、无思维链。
-3. 视觉 API 返回后，解析器剥离 `<|begin_of_box|>/<|end_of_box|>` 与代码围栏，容错提取 JSON（含 `g` 定位、`d` 差异、`art` 产物）。
-4. 默认编译为 VEP/2 证据（`src/m/a/t/s/o/g/d/art/e/v/c`，分级裁剪）回传主模型；`--detail` 输出分节报告。
-5. 同一图片+问题命中缓存时直接复用结果。
-
-## 另一台机器部署（DSH 插件形态）
-
-插件需要 deepseek-harness 源码的三处配套改动（发图降级接缝、文本模型图片剥离、前端 VEP 折叠与进度卡片），已打包为补丁：
-
-```powershell
-# 1. 应用 harness 补丁（详见 harness-patch/README.md）
-cd <deepseek-harness checkout>
-git apply <本仓库>\harness-patch\dsh-prism-harness.patch
-
-# 2. 重建 harness 相关产物
-node node_modules\typescript\bin\tsc -b tsconfig.host.json
-node node_modules\tsdown\dist\run.mjs --env.DSH_BUILD_FACE host --filter @deepseek-ai/dsh-host-apiproxy --filter @deepseek-ai/dsh-llm-deepseek
-node node_modules\typescript\bin\tsc -b tsconfig.client.json
-node node_modules\tsdown\dist\run.mjs --env.DSH_BUILD_FACE client
-
-# 3. 调整插件开发依赖的 link 路径（指向你自己的 harness/profiles 位置），然后构建
-cd <本仓库>\dsh-plugin
-#   编辑 package.json 的 devDependencies，把 link:C:/Users/.../ 与 link:E:/Git/.../ 改为本机路径
-pnpm install
-pnpm run build
-node tests\host.spec.mjs        # 应全部通过
-
-# 4. 安装插件并重启
-cd <deepseek-harness checkout>
-pnpm dsh plugin --profile web add <本仓库>\dsh-plugin
-pnpm dsh --profile web --port 8080
-
-# 5. 设置 → 插件 → 可配置 → DeepSeek Prism：填写视觉 API 密钥（必填）、模型、Base URL
-```
-
-> 注意：`dsh-plugin` 必须在 `DeepSeek_Prism` 仓库 checkout 内安装（运行时动态导入相邻的 `deepseek-prism/scripts/vision.mjs`）。
+2. 本地关键词推断模式（error / ocr / ui / chart / general）并构造受限 prompt：只报可见事实、不解决任务、无思维链。
+3. 视觉 API 返回后，解析器剥离 `<|begin_of_box|>/<|end_of_box|>` 与代码围栏，容错提取 JSON。
+4. 默认编译为 VEP/1 证据（`src/m/a/t/s/o/e/v/c`）回传主模型；`--detail` 输出分节报告。
+5. 长内容任务自动切换完整通道；输出被截断时以锚点续写、合并，直到模型回答“没有更多内容”。
+6. 超 2048px 的图片用内置 sharp 等比缩放后再上传（动画 GIF 保留全部帧），节省流量与 API 费用；旧版本缓存条目自动清理。
+7. 同一图片+问题+输出通道命中缓存时直接复用结果。
 
 ## 文档
 

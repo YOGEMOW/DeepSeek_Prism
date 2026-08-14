@@ -1,51 +1,141 @@
 # CHANGELOG.md
 
-## [未发布] 2026-08-15
+## [未发布]
+
+### Changed
+
+- **合并两条开发线的 vision.mjs 能力**：在 v0.5.0（sharp 缩放 / 自动续写 / detail 分级）基础上移植 VEP/2 多模式增量——`inferMode` 扩展八种模式（新增 `qa` 带意图问答 / `grounding` 对象定位 / `diff` 双图对比，问句优先于界面模式）；`MODE_RULES` 强化完整事实提取（ocr 逐字全文、general 完整描述）；`buildPrompt` schema 新增 `g`（归一化 bounding box）/ `d`（像素差异区域）/ `art`（可交付产物如 UI 还原 HTML）；`parseVisionResult` / `toVep` 支持新字段并升级为 VEP/2（分级裁剪保留 g/d）；`callVision` 支持多图（`imageDataUrls`，diff 双图同请求）；新增 `queryBalance`（SiliconFlow `/v1/user/info`，失败静默）；`PROMPT_VERSION` 升 `dv-2`。
+- SKILL.md 路径指引统一为 `<资源目录>` 并补充 DSH `resourceBase.path` 定位说明。
+- 作废并行开发的 `dsh-plugin/`（TypeScript/tsdown 实现）与 `harness-patch/`：其降级机制（api-proxy `imageFallback` 接缝 + 前端折叠/执行链）与主线的文本指针降级方案不同，功能增量已并入 `vision.mjs` 主线；两目录自本版本起从仓库移除。
 
 ### Added
 
-- 对话发图自动降级：插件宿主半新增可选 `imageFallback` 服务（`transformImages`）——harness 的 api-proxy `prompt` 准入在“当前模型不支持图片且该服务已挂载”时，把上传的图片 part 经视觉流水线转为 VEP/1 文本后再入会话（文本模型会话可直接上传图片并自动识图；未挂载时维持原 `MODEL_DOES_NOT_SUPPORT_IMAGES` 拒绝，转换失败返回 `IMAGE_FALLBACK_FAILED`）。
-- 插件测试新增 2 项：`imageFallback` 图片→VEP/1 文本转换（多图编号 + 文件名标注、文本 part 原样保留）、无密钥指引错误（合计 9 项全部通过）。
+- `vision.mjs` 新增 `queryBalance` 导出与多图调用测试；`vision.test.mjs` 覆盖八模式推断、g/d/art 解析、VEP/2 裁剪、多图与余额查询。
 
-### Changed
-
-- harness（经用户确认的纯增量）：`packages/host/apiproxy/src/api-proxy.ts` 新增可选 `ImageFallbackService` 接缝（`ctx.get('imageFallback')`，约 20 行，无其他行为变化）；`api-proxy-models.spec.ts` 新增 3 项测试（未挂载保持拒绝 / 降级转换成功 / 转换失败错误码）；api-proxy 13 项测试、宿主 tsc 重建通过。
-- `dsh-plugin/src/index.ts`：提取 `resolvePrismSettings` / `prismProvider` 共享配置解析，`prism_see` 与 `imageFallback` 复用同一密钥解析顺序（设置文档 → 环境变量 → 默认值），密钥缺失错误文案统一。
-- 移除 DSH 技能安装（经用户确认）：插件形态已覆盖 DSH 上 skill 的全部功能，删除 `C:\Users\YOGIMOV\.dsh\skills\deepseek-prism`；插件运行时仅依赖仓库内 `deepseek-prism/scripts/vision.mjs`，不受影响；保留仓库源码与 Codex 安装副本（`C:\Users\YOGIMOV\.codex\skills\deepseek-prism`）。
-- DSH 前端 VEP 折叠展示（harness 配套，经用户确认）：`ui-conversation` 用户气泡按文本约定（`【DeepSeek Prism 识别：<文件名>】\nVEP/1|…`）把证据折叠为“查看识别结果：<文件名>”链接按钮，点击展开完整 VEP（等宽小字、aria-expanded）；模型仍收到完整证据文本（后端无改动），普通文本与多图顺序不变，复制文本仍含完整 VEP；新增 `tests/message-vep.client.spec.tsx` 6 项，ui-conversation 全量 422 项测试通过；重建客户端 bundle 后刷新页面生效。
-- DSH 识图进度执行链卡片（harness 配套，经用户确认）：`ui-conversation` ChatView 订阅输入机状态，发送含图片的消息时在消息流末尾渲染“DeepSeek Prism 图片识别”执行链卡片（ongoing 状态点 + “正在识别 N 张图片…”），消息落地后消失；纯本地展示不进会话日志；chat-view 新增 2 项用例，ui-conversation 全量 424 项测试通过。
-- Prism 设置卡片仿照重做（经用户确认）：PrismCard 弃用 inline style，仿照 ui-settings-plugins 的 PluginCard/ValueField/SecretField 设计重做（可折叠头部、字段行、保存/放弃脚注，同一套 `--dsw-alias-*` token）；新增 `PrismCard.module.css` 与 CSS Modules 构建链（tsdown lightningcss 虚拟插件 + `src/css-modules.d.ts`，lightningcss link 加入 devDependencies）；插件 typecheck/构建/9 项测试通过。
-- 识别完整提取 + 用量/余额显示 + 执行链修复（经用户确认）：`vision.mjs` ocr 模式改为完整精确提取全部文字（逐字保留不省略），新增 `callVisionWithUsage`（返回 usage）与 `queryBalance`（SiliconFlow `/v1/user/info`，失败静默）；插件降级识别默认完整提取，按设置附加 `【DeepSeek Prism 用量】tokens=…|balance=…|cost=…` 行（余额差为本次消耗），设置新增 `showUsage`（默认开）/`showBalance`（默认关）即时保存开关（PrismCard checkbox 行）；修复执行链卡片：`InputState` 新增 facade 层 `sendingCount`（普通发送走 default-sink、phase 始终 plain 且乐观提交即清空图片，原条件永不成立），hub.sink 置位、RPC settle 清除，ChatView 改订阅该字段；前端 VEP 折叠链接标题显示消耗 token、展开区显示余额与本次消耗；测试：插件 10 项、skill 18 项、ui-conversation 426 项全部通过；重建插件与 ui-conversation bundle，**需重启 web 服务使宿主侧生效**。
-- 动态预算 + 消耗金额修复 + 文案清理（经用户确认）：降级识别预算按图片字节大小三档自适应（≤256KB→512 token、≤1MB→1024、更大→2048；输出触顶 ≥95% 时自动升级一档重试，用量汇总所有轮次），小图省 token、长文完整呈现；消耗金额改为 token × 内置单价估算（GLM-4.5V 输入 ¥0.14/M、输出 ¥0.86/M），替换在余额为 0 或精度不足时失效的余额差算法；设置文案删除“（SiliconFlow）”括注；插件测试 11 项（新增触顶升级用例）全部通过，重建 bundle。
-
-## [未发布] 2026-08-14
+## [0.5.0] 2026-08-14
 
 ### Added
 
-- DSH 插件化：新增 `dsh-plugin/`（`@yogemow/dsh-prism` 组合包）——宿主插件注册 `deepseek-prism` 设置命名空间与模型可见的 `prism_see` 工具（复用 `deepseek-prism/scripts/vision.mjs` 流水线，运行时按仓库相对路径动态导入）；浏览器半注册 设置 → 插件 → 可配置 卡片（视觉 API 密钥 / 模型 / Base URL / 区域，密钥为 `role('secret')` 写后即掩）。安装：`pnpm dsh plugin --profile web add <repo>\dsh-plugin`。
-- 插件测试：`dsh-plugin/tests/host.spec.mjs`（7 项：注册契约、无密钥指引错误、settings 密钥 + mock 视觉 API 端到端 VEP/1、detail 模式、环境变量回退、vision.mjs 定位、默认值一致性）。
+- **设置界面集成**（DSH 插件）：注册 `deepseek-prism-dsh` 设置命名空间，在 harness 设置页「插件」配置页新增 DeepSeek Prism 卡片：
+  - 视觉 **API 密钥**：`type=password` 只写控件，保存后仅显示「已配置」徽标（中间字符不展示、明文不随响应返回），经 `ctx.credentials` 写入凭据库；
+  - **Provider / 模型 / 区域 / 密钥环境变量名（凭据引用）**：写入设置命名空间，保存后宿主把密钥与 `VISION_PROVIDER/VISION_MODEL/VISION_REGION` 注入 `process.env`，vision.mjs 子进程自动继承，无需任何 `.env` 文件。
+  - 客户端为手写 `__ModuleLoader__` bundle（零构建，仅 `require('react')`），宿主侧设置/凭据包为可选动态导入（缺失时降级跳过）。
+- harness 侧一行 allowlist 补丁：`WEB_SETTINGS_NAMESPACES` 加入 `deepseek-prism-dsh`（设置页可读写该命名空间）。
+
+### Test
+
+- 插件测试 18 项全部通过（新增：凭据/模型选择 env 注入、缺省引用回退、空值不覆盖）；全量 61 项通过。
+
+## [0.4.1] 2026-08-14
+
+### Fixed
+
+- **插件图片降级从未生效的根因**：`isCurrentModelTextOnly` 以裸 `{ sessionId }` 调用 `sessions.models`，而真实 api-proxy 从 `request.payload` 解构（抛错被 catch 吞掉后回退上游，图片上传仍被拒绝）；已改为完整请求形状 `{ payload: { sessionId } }`，并新增形状回归测试。实测：插件生效后纯文本模型图片上传降级成功。
 
 ### Changed
 
-- 上一条 DSH 适配（技能形态）保留；插件形态与技能形态并存（`prism_see` 工具 + `skill` 工具均可触发识图）。
-- harness 设置暴露（经用户确认的一行纯增量）：`packages/host/apiproxy/src/api-proxy.ts` 的 `WEB_SETTINGS_NAMESPACES` 追加 `'deepseek-prism'`，使设置界面可读写插件命名空间（harness 注释声明该处为插件设置暴露的唯一路径）；重建 `@deepseek-ai/dsh-host-apiproxy`；api-proxy-config 30 项既有测试、oxlint、tsc 均通过；其余 harness 行为与接口协议不受影响。
+- **消除 harness 上的重复安装**：插件不再把技能素材物化到 `$DSH_HOME/skills/deepseek-prism`（不再产生文件系统副本），改为启动时通过 `ctx.skills.register` **运行时注册**技能（资源基准目录指向包内素材）；已清理 `~/.dsh/skills/deepseek-prism` 旧副本与仓库内生成的 `packages/*/bundle|skill` 素材副本（发布时由 prepack 按需再生成）。
 
-## [未发布] 2026-08-14
+### Test
+
+- 插件测试 14 项全部通过（新增：models RPC 形状回归、技能注册、无物化验证）；`node --test` 全量 57 项通过。
+
+## [0.4.0] 2026-08-14
 
 ### Added
 
-- DSH 适配：安装到 `C:\Users\用户名\.dsh\skills\deepseek-prism`（DeepSeek Harness 用户技能目录，`$DSH_HOME/skills`），由 harness 的 skill-filesystem / tool-skill 自动发现。
-- 回归测试：`tests/skill-meta.test.mjs` 锁定 DSH 发现契约（frontmatter name/description 合法性、`resourceBase` 路径指引、`scripts/vision.mjs` 存在），防止 SKILL.md 回退为纯 Codex 写法。
+- **DSH 插件化**：新增 `packages/plugin-dsh`（`@yogemow/deepseek-prism-dsh`）——把此前对 DSH 宿主的 api-proxy 改造与技能整合为一个零依赖 Cordis 插件：
+  - 技能物化：插件启动时把包内携带的 deepseek-prism 素材写入 `$DSH_HOME/skills/deepseek-prism`（版本戳防重复、保留用户 `.env`），由 skill-filesystem 自动发现；
+  - 图片降级：包装 `apiProxy.sessions.prompt`，纯文本模型收到图片时降级为文本指针（描述 + 附件对象路径），视觉模型不受影响；不再需要修改/分叉 DSH 宿主源码。
+  - 安装：`dsh plugin --profile web add @yogemow/deepseek-prism-dsh`（`dsh.bundle` 声明自动激活）。
+- **双包发布**：新增 `packages/skill`（`@yogemow/deepseek-prism-skill`，Codex 用，含 `deepseek-prism-skill` 一键安装 CLI）与 `packages/plugin-dsh`（DSH 用）；发布编排脚本 `scripts/release.mjs`（测试 → 同步版本 → npm pack → 可选发布 GitHub Packages），prepack 自动把 `deepseek-prism/` 素材物化进各包；发布物（`dist/*.tgz`）作为 GitHub Release 资产分发（GitHub Packages 的 npm 发布需 classic PAT，脚本已支持 `NODE_AUTH_TOKEN`）。
+- 根 `package.json`（private workspaces）与发布文档同步（README / STATUS / DECISIONS D16 / PLAN / AGENTS / RISKS）。
+
+### Test
+
+- `node --test` 53 项全部通过（vision 43 + 插件 10：降级透传矩阵、校验回退、对象路径、素材物化与版本戳）。
+- skill-creator `quick_validate.py` 通过。
+
+## [0.3.1] 2026-08-14
+
+### Added
+
+- 无扩展名图片文件支持：`readImageSource` 在扩展名未知时按魔数嗅探 MIME（PNG/JPEG/GIF/BMP/WebP/AVIF/TIFF/SVG），适配 DSH 附件对象路径等无扩展名来源。
+- SKILL.md 补充 DSH 图片附件注入说明：纯文本模型场景下用户上传的图片会以 `[图片附件 …已保存到 <路径>]` 文本块进入会话，直接以该路径调用本 Skill 脚本即可。
+
+### Fixed
+
+- DSH 纯文本模型识图链路：DSH 宿主不再拒绝纯文本模型的图片上传，而是将图片落盘为内容寻址对象并注入路径文本；`vision.mjs` 可分析该无扩展名对象文件（配合魔数嗅探）。
+
+### Test
+
+- `node --test` 43 项全部通过（新增 `sniffImageMime` 8 类魔数用例）。
+
+## [0.3.0] 2026-08-14
+
+### Added
+
+- DeepSeek Harness（DSH）平台适配：Skill 升级为 Codex / DSH 双平台通用。
+  - `scripts/vision.mjs` sharp 自动查找新增 DSH Web 运行时候选（`~/.dsh/profiles/node_modules/sharp`，含 `DSH_HOME` 解析）与 DSH 用户根候选（`~/.dsh/node_modules/sharp`），DSH 环境大图缩放开箱即用。
+  - SKILL.md：触发协议补充 DSH `read_image` 工具；命令章节给出 Codex / DSH 两套默认安装路径；sharp 查找顺序说明双平台（`VISION_SHARP_PATH` → Codex 运行时 → DSH profiles → 技能目录 node_modules）。
+  - `doctor` 与缩放警告文案更新为双平台查找说明；references/providers.md 的 `VISION_SHARP_PATH` 行同步。
+  - README：安装章节新增 DSH 安装方式（`C:\Users\用户名\.dsh\skills\deepseek-prism`）与宿主刷新说明；说明 `agents/openai.yaml` 仅 Codex 使用（DSH 忽略）。
+  - PROJECT / PLAN / STATUS / DECISIONS / RISKS 同步双平台定位；DECISIONS 新增 D15。
+
+### Test
+
+- `node --test` 42 项全部通过（DSH sharp 环境实测：大图等比缩放、GIF 动画帧保留、AVIF/TIFF/SVG 尺寸回退、`VISION_SHARP_PATH` 重试）。
+- skill-creator `quick_validate.py` 通过。
+- SiliconFlow 真实冒烟通过：DSH 安装副本 `see --json` 正确提取报错截图（error 模式，含文件:行号）。
+
+## [0.2.0] 2026-08-05
+
+### Added
+
+- 输出策略自动分级：小图/简单任务保持 VEP/1（≤520 字符）；长内容任务（代码截图、长日志、文档、宽/高比 ≥ 2.5 的截图或问题命中长内容词）自动走 `--detail` 完整通道（默认 4096 token）。
+- 超长内容自动续写：检测 `finish_reason=length` 或无自然结束标记（括号不平衡、尾随分隔符）时，以上一段结尾 200 字符为锚点再次调用，直到模型回复 `[完成]`/“没有更多内容”，合并输出；上限 8 次续写，仍不完整时末尾标注 `[截断]`。
+- 新增 `--raw`（输出 cleanRaw 原文）与 `--full`（隐含 detail，输出 `{raw, parsed}` JSON 信封）；新增 `--compact` 强制紧凑 VEP/1。
+- 图片宽高解析（PNG/JPEG/GIF/WebP/BMP + AVIF/TIFF/SVG 的 sharp metadata 回退）与内置 sharp 等比缩放：`VISION_RESIZE_TOOL=auto|sharp|skip`、`VISION_RESIZE_MAX`（默认 2048），自动查找 Codex 运行时自带 sharp（libvips），不依赖宿主安装 Python/Pillow；动画 GIF 缩放后保留全部帧，SVG 缩放后栅格化为 PNG。
+- Provider `outputLimit` 感知：SiliconFlow/智谱/ModelScope/阿里 detail 上限 4096，OpenRouter/Groq 8192；`VISION_MAX_OUTPUT_TOKENS` 仍可覆盖。
+- `VISION_DETAIL_AUTO=auto|always|never` 控制自动分级；`vepFieldBudget()` 字段预算随 `--max-chars` 缩放（答案 45%、文本 35%、摘要 25%）。
+- `VISION_MAX_CONTINUATIONS` 可配置续写次数上限（默认 8，0 关闭续写）；`doctor` 输出 Node 版本与图片缩放后端状态，便于多端环境排查。
 
 ### Changed
 
-- `SKILL.md`：命令示例改用 `<资源目录>` 占位符并说明其解析方式（DSH 为 `skill` 工具返回的 `resourceBase.path`，默认 `C:\Users\用户名\.dsh\skills\deepseek-prism`；Codex 为 `C:\Users\用户名\.codex\skills\deepseek-prism`）；强制协议补充 DSH `read_image` 工具；新增 Windows 路径含空格/中文时加引号的说明；其余内容不变，Codex 安装副本仍兼容。
+- 字段截断与 VEP 压缩路径显式追加 `[截断]` 标记，不再静默停在单词中间。
+- 缓存 key 增加输出通道参数（`vep`/`detail`），避免两种模式结果互串；旧缓存条目自然过期。
+- 缓存条目增加版本号（CACHE_VERSION=2）：旧格式、过期、损坏条目在读取/淘汰/统计时自动清理。
+- 修复 `--no-cache` 语义：不再在请求后写回缓存（原实现只删除后仍会重新写入）。
+- `callVision` 新增 `withMeta` 选项返回 `{text, finishReason}`（默认仍返回字符串，导出接口兼容）。
 
-## [未发布] 2026-08-04
+### Fixed
 
-### Changed
+- `--json` 与自动 detail 组合现在始终返回解析后的 JSON（原先返回 Markdown 原文）。
+- 新增 `VISION_MAX_INPUT_PIXELS` 输入像素上限（默认 268MP）并恢复 sharp 解压防护，超大/恶意图片跳过缩放。
+- `VISION_MAX_CONTINUATIONS=0` 现在真正关闭续写（原先 0 会回退默认 8）。
+- `--full` 的 `parsed` 不再被 `extractJson` 的 1000 字符回退截断。
+- AVIF/TIFF 缩放后统一转 PNG，避免部分视觉 API 拒绝 heif/tiff data URL。
+- 续写段只剥离盒子标记、不再逐段剥离代码围栏，跨段代码块合并后围栏保留。
+- 续写合并时折叠相邻重复围栏（` ```\n``` ` 合并为单个），避免段边界围栏重复。
+- 首段仅返回 `[完成]` 时不再输出空串。
+- `loadSharp` 失败后不再缓存失败状态，设置 `VISION_SHARP_PATH` 后可在同进程重试。
+- usage 明确 `--detail`/`--full` 优先于 `--compact`。
+- 极小 `--max-chars` 下字段预算不再超过总预算。
+- 缓存写入改为临时文件 + rename 原子写，损坏/半写入条目自动按 miss 清理。
 
+### Docs
+
+- SKILL.md / README / references/modes.md / references/providers.md 同步自动分级、续写、`--raw`/`--full`、内置 sharp 缩放、`VISION_MAX_INPUT_PIXELS` 与 Provider 上限说明。
+- AGENTS.md / PLAN.md / RISKS.md 补充 `quick_validate.py` 缺 PyYAML 时的安装指引（`python -m pip install pyyaml`），方便新环境 AI 及时安装。
 - 项目约定：所有命令行操作统一使用 PowerShell 7（`pwsh`），不使用 Windows PowerShell 5.1；AGENTS.md 新增约定第 7 条，DECISIONS 记录 D12。
+- AGENTS.md / PLAN.md / PROJECT.md 测试命令统一为 `node --test`，明确 Node >= 18（兼容 18/20/22/24），解决多用户不同 Node 版本下 `node --test tests/` 不识别目录参数的问题。
+- DECISIONS 新增 D13（自动分级与续写）、D14（内置 sharp 缩放后端）；RISKS 记录范围外问题。
+
+### Test
+
+- `node --test` 42 项全部通过（含 sharp 缩放、GIF 动画帧保留、AVIF/TIFF/SVG 尺寸回退、旧缓存清理、`--no-cache` 不写缓存、重复围栏折叠，以及 10 项审计缺陷的失败→通过回归）。
+- skill-creator `quick_validate.py` 通过（本机已安装 PyYAML 6.0.3）。
+- SiliconFlow 真实冒烟通过：VEP / 自动 detail / `--full` / 大图缩放，以及真实续写（256 token 上限下 5 次 API 调用自动合并 4213 字符，无 `[截断]`）。
 
 ## [0.1.1] 2026-08-04
 
