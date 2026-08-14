@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "checkJs": false,
+    "allowImportingTsExtensions": true,
+    "lib": ["es2022", "dom"],
+    "skipLibCheck": true,
+    "noUnusedLocals": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node", "react"]
+  },
+  "include": ["src", "tsdown.config.ts"]
+}

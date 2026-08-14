@@ -1,0 +1,5 @@
+# DeepSeek Prism bundle layer: one dual-face row — the host plugin
+# (settings namespace + prism_see tool) and its browser settings card.
+- insert:
+    - id: prism
+      name: '@yogemow/dsh-prism'
