@@ -1,5 +1,19 @@
 # CHANGELOG.md
 
+## [0.5.0] 2026-08-14
+
+### Added
+
+- **设置界面集成**（DSH 插件）：注册 `deepseek-prism-dsh` 设置命名空间，在 harness 设置页「插件」配置页新增 DeepSeek Prism 卡片：
+  - 视觉 **API 密钥**：`type=password` 只写控件，保存后仅显示「已配置」徽标（中间字符不展示、明文不随响应返回），经 `ctx.credentials` 写入凭据库；
+  - **Provider / 模型 / 区域 / 密钥环境变量名（凭据引用）**：写入设置命名空间，保存后宿主把密钥与 `VISION_PROVIDER/VISION_MODEL/VISION_REGION` 注入 `process.env`，vision.mjs 子进程自动继承，无需任何 `.env` 文件。
+  - 客户端为手写 `__ModuleLoader__` bundle（零构建，仅 `require('react')`），宿主侧设置/凭据包为可选动态导入（缺失时降级跳过）。
+- harness 侧一行 allowlist 补丁：`WEB_SETTINGS_NAMESPACES` 加入 `deepseek-prism-dsh`（设置页可读写该命名空间）。
+
+### Test
+
+- 插件测试 18 项全部通过（新增：凭据/模型选择 env 注入、缺省引用回退、空值不覆盖）；全量 61 项通过。
+
 ## [0.4.1] 2026-08-14
 
 ### Fixed

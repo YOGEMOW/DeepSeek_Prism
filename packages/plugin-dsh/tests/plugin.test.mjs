@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import {
   apply,
+  applyVisionEnvironment,
   attachmentObjectPath,
   degradeImageContent,
   imagePointerText,
@@ -268,4 +269,78 @@ test("apply 不向任何用户技能根写入副本（无物化）", async () =>
     else process.env.DSH_HOME = oldHome;
     await rm(fakeHome, { recursive: true, force: true });
   }
+});
+
+function envCtx(section, keyValue) {
+  return {
+    get: (name) => name === "settings"
+      ? { get: () => section }
+      : name === "credentials"
+        ? { resolve: async () => (keyValue === undefined ? undefined : { value: keyValue }) }
+        : undefined,
+    logger: { info: () => {}, warn: () => {} },
+  };
+}
+
+const ENV_KEYS = ["SILICONFLOW_API_KEY", "CUSTOM_VISION_KEY", "VISION_PROVIDER", "VISION_MODEL", "VISION_REGION"];
+
+async function withCleanEnv(run) {
+  const saved = {};
+  for (const key of ENV_KEYS) {
+    saved[key] = process.env[key];
+    delete process.env[key];
+  }
+  try {
+    return await run();
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+test("applyVisionEnvironment：凭据注入密钥变量，模型选择注入 VISION_*", async () => {
+  await withCleanEnv(async () => {
+    const result = await applyVisionEnvironment(envCtx({
+      provider: "siliconflow",
+      model: "glm-x",
+      region: "global",
+      apiKeyEnv: "SILICONFLOW_API_KEY",
+    }, "sk-secret"));
+    assert.equal(result.configured, true);
+    assert.equal(process.env.SILICONFLOW_API_KEY, "sk-secret");
+    assert.equal(process.env.VISION_PROVIDER, "siliconflow");
+    assert.equal(process.env.VISION_MODEL, "glm-x");
+    assert.equal(process.env.VISION_REGION, "global");
+  });
+});
+
+test("applyVisionEnvironment：无凭据时 configured=false 且不设密钥变量", async () => {
+  await withCleanEnv(async () => {
+    const result = await applyVisionEnvironment(envCtx({ apiKeyEnv: "SILICONFLOW_API_KEY" }, undefined));
+    assert.equal(result.configured, false);
+    assert.equal(process.env.SILICONFLOW_API_KEY, undefined);
+  });
+});
+
+test("applyVisionEnvironment：apiKeyEnv 缺省回退 SILICONFLOW_API_KEY，自定义引用按段取值", async () => {
+  await withCleanEnv(async () => {
+    const result = await applyVisionEnvironment(envCtx({ model: "m2" }, "sk-custom"));
+    assert.equal(result.apiKeyEnv, "SILICONFLOW_API_KEY");
+    assert.equal(process.env.SILICONFLOW_API_KEY, "sk-custom");
+    const custom = await applyVisionEnvironment(envCtx({ apiKeyEnv: "CUSTOM_VISION_KEY" }, "sk-custom-2"));
+    assert.equal(custom.apiKeyEnv, "CUSTOM_VISION_KEY");
+    assert.equal(process.env.CUSTOM_VISION_KEY, "sk-custom-2");
+    assert.equal(process.env.VISION_MODEL, "m2");
+  });
+});
+
+test("applyVisionEnvironment：空 provider/model/region 不覆盖已有 env", async () => {
+  await withCleanEnv(async () => {
+    process.env.VISION_PROVIDER = "pre-set";
+    await applyVisionEnvironment(envCtx({}, "k"));
+    assert.equal(process.env.VISION_PROVIDER, "pre-set");
+    assert.equal(process.env.VISION_MODEL, undefined);
+  });
 });

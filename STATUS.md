@@ -45,9 +45,11 @@
 
 - 识图链路修复与去重复（2026-08-14，随 v0.4.1 发布）：API 实测定位「重启后无法识图」根因——插件 `isCurrentModelTextOnly` 以裸 `{ sessionId }` 调用 `sessions.models`，真实实现从 `request.payload` 解构导致抛错回退上游（图片上传仍被 `MODEL_DOES_NOT_SUPPORT_IMAGES` 拒绝）；已改为完整请求形状并加回归测试（实测降级成功）。同时按用户要求消除重复：插件改为 `ctx.skills.register` 运行时注册技能（不再物化副本），清理 `~/.dsh/skills/deepseek-prism` 与仓库生成素材副本；插件测试 14 项、全量 57 项通过；发布 v0.4.1。
 
+- 设置界面集成（2026-08-14，随 v0.5.0 发布）：DSH 插件注册 `deepseek-prism-dsh` 设置命名空间，harness 设置页「插件」页新增 DeepSeek Prism 卡片——视觉 API 密钥（password 只写 + 「已配置」徽标，经 credentials 凭据库存储，明文不回显）+ Provider/模型/区域/凭据引用（写入设置段后注入 `process.env`，vision.mjs 免 .env）；客户端为手写 `__ModuleLoader__` bundle（零构建）；harness `WEB_SETTINGS_NAMESPACES` 加一行 allowlist（本地补丁）；插件测试 18 项、全量 61 项通过；发布 v0.5.0。
+
 ## 进行中
 
-- 无（v0.4.1 已发布）。
+- 无（v0.5.0 已发布）。
 
 ## 待处理
 

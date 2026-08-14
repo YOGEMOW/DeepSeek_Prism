@@ -9,8 +9,13 @@
  * 2. **纯文本模型图片降级**：包装 `ctx.apiProxy.sessions.prompt`——当会话当前模型
  *    不支持图片输入时，把上传的图片块降级为文本指针（描述 + 内容寻址对象路径），
  *    让模型可以按 deepseek-prism 技能指引对该文件运行视觉脚本；视觉模型不受影响。
+ * 3. **设置界面集成**：注册 `deepseek-prism-dsh` 设置命名空间（视觉 Provider /
+ *    模型 / 区域 / API 密钥引用），密钥经 `ctx.credentials` 存储（只写不回显）；
+ *    设置生效后把密钥与模型选择注入 `process.env`（vision.mjs 子进程自动继承，
+ *    无需任何 .env 文件）。
  *
- * 零依赖：仅使用 Node 内置模块；除 cordis 宿主注入外无任何运行时依赖。
+ * 运行依赖：仅 Node 内置模块 + cordis 宿主注入；设置相关包（dsh-settings /
+ * dsh-credentials / schemastery）为可选运行时解析（动态导入，缺失时降级跳过）。
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -21,6 +26,17 @@ import { fileURLToPath } from "node:url";
 export const name = "deepseek-prism-dsh";
 
 const PACKAGE_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+/** 设置命名空间（web 设置页的插件卡片读写它）。 */
+export const SETTINGS_NAMESPACE = "deepseek-prism-dsh";
+
+/** 视觉 Provider 预设 id（与 vision.mjs PROVIDERS 一致；空串 = auto）。 */
+export const VISION_PROVIDERS = [
+  "", "siliconflow", "zhipu", "modelscope", "alibaba", "openrouter", "groq", "custom",
+];
+
+/** 默认凭据引用（环境变量名）。 */
+export const DEFAULT_API_KEY_REF = "SILICONFLOW_API_KEY";
 
 /**
  * 技能素材源目录：优先包内 `skill/`（发布形态），
@@ -222,6 +238,85 @@ export function apply(ctx, config = {}) {
   ctx.inject(["apiProxy", "attachments", "llm"], (gatewayCtx) => {
     installPromptDegradation(gatewayCtx);
   });
+  // 设置命名空间 + 凭据/环境注入：需要 settings 服务；缺失或包不可解析时降级跳过。
+  ctx.inject(["settings"], (settingsCtx) => {
+    void installPrismSettings(settingsCtx, config)
+      .then(() => applyVisionEnvironment(settingsCtx))
+      .catch((error) => {
+        settingsCtx.logger?.warn(
+          `deepseek-prism-dsh: settings integration failed: ${error instanceof Error ? error.message : String(error)}`
+        );
+      });
+  });
+}
+
+/**
+ * 把当前设置段（provider/model/region/apiKeyEnv + 凭据密钥）应用到宿主进程环境，
+ * 使模型运行 vision.mjs 的子进程（继承宿主 env）无需任何 .env 文件即可调用视觉 API。
+ * @returns 应用结果摘要（不含密钥明文）。
+ */
+export async function applyVisionEnvironment(ctx) {
+  const settings = ctx.get("settings");
+  const credentials = ctx.get("credentials");
+  const section = settings?.get(SETTINGS_NAMESPACE) ?? {};
+  const apiKeyEnv = typeof section.apiKeyEnv === "string" && section.apiKeyEnv.length > 0
+    ? section.apiKeyEnv
+    : DEFAULT_API_KEY_REF;
+  let configured = false;
+  if (credentials !== undefined) {
+    const resolved = await credentials.resolve(credentialRefOf(apiKeyEnv));
+    if (resolved?.value !== undefined && String(resolved.value).length > 0) {
+      process.env[apiKeyEnv] = String(resolved.value);
+      configured = true;
+    }
+  }
+  if (typeof section.provider === "string" && section.provider.length > 0) {
+    process.env.VISION_PROVIDER = section.provider;
+  }
+  if (typeof section.model === "string" && section.model.length > 0) {
+    process.env.VISION_MODEL = section.model;
+  }
+  if (typeof section.region === "string" && section.region.length > 0) {
+    process.env.VISION_REGION = section.region;
+  }
+  return {
+    apiKeyEnv,
+    configured,
+    provider: typeof section.provider === "string" ? section.provider : "",
+    model: typeof section.model === "string" ? section.model : "",
+    region: typeof section.region === "string" ? section.region : "",
+  };
+}
+
+/** 避免顶层依赖 dsh-credentials：凭据引用就是一个字符串（这里仅作文档化别名）。 */
+function credentialRefOf(ref) {
+  return ref;
+}
+
+/**
+ * 注册设置命名空间（需 dsh-settings / schemastery 可解析；动态导入，缺失时抛错由调用方降级）。
+ */
+export async function installPrismSettings(ctx, entryConfig = {}) {
+  const { installSettingsSection, settingsNamespace } = await import("@deepseek-ai/dsh-settings");
+  const { default: z } = await import("@deepseek-ai/schemastery");
+  const schema = z.object({
+    provider: z.string().default(""),
+    model: z.string().default(""),
+    region: z.string().default("cn"),
+    apiKeyEnv: z.string().role("credential-ref").default(DEFAULT_API_KEY_REF),
+    apiKey: z.string().role("secret"),
+  });
+  let currentSource = () => entryConfig;
+  installSettingsSection(ctx, settingsNamespace(SETTINGS_NAMESPACE), schema, entryConfig, {
+    setSource: (source) => {
+      currentSource = source;
+    },
+    onChange: () => {
+      void applyVisionEnvironment(ctx);
+    },
+  });
+  ctx.logger?.info(`deepseek-prism-dsh: settings namespace "${SETTINGS_NAMESPACE}" registered`);
+  return currentSource;
 }
 
 export default apply;
