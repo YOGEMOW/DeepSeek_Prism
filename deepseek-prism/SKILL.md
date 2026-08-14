@@ -19,14 +19,16 @@ description: 当 DeepSeek 等纯文本模型无法直接查看图片时，通过
 脚本实际查找顺序：环境变量 → 运行目录 `.env` → 脚本目录（scripts/）`.env` → 技能根目录 `.env`。配置后可用以下命令验证（不会打印密钥）：
 
 ```bash
-node <技能路径>/scripts/vision.mjs providers
-node <技能路径>/scripts/vision.mjs doctor
+node <资源目录>/scripts/vision.mjs providers
+node <资源目录>/scripts/vision.mjs doctor
 ```
+
+`<资源目录>` 即技能目录：DSH 中为 `skill` 工具返回的 `resourceBase.path`（默认安装于 `C:\Users\用户名\.dsh\skills\deepseek-prism`）；Codex 中为 `C:\Users\用户名\.codex\skills\deepseek-prism`。路径含空格或中文时必须加引号。
 
 密钥属于敏感信息，请勿把密钥内容发到对话或提交到仓库。
 ## 强制协议（遇到图片时必须先执行）
 
-1. 先尝试直接查看/读取图片（视图工具或文件读取）。
+1. 先尝试直接查看/读取图片（如 DSH 的 `read_image` 工具，或 Codex 的视图工具 / 文件读取）。
 2. 若出现以下任一信号，说明当前模型无法读取像素：
    - `Unsupported format` / `Unsupported Image`
    - `Failed to read image` / `cannot read image`
@@ -41,16 +43,16 @@ node <技能路径>/scripts/vision.mjs doctor
 
 ```text
 我无法直接查看图片，改用 DeepSeek Prism 分析：
-node <skill路径>/scripts/vision.mjs see --image <图片路径> --question "只提取错误信息和行号"
+node <资源目录>/scripts/vision.mjs see --image <图片路径> --question "只提取错误信息和行号"
 ```
 
 ## 命令
 
 ```bash
-node <skill路径>/scripts/vision.mjs see --image <本地路径或URL> --question <一个聚焦问题> [--provider id] [--json] [--no-cache] [--detail] [--max-chars 520]
+node <资源目录>/scripts/vision.mjs see --image <本地路径或URL> --question <一个聚焦问题> [--provider id] [--json] [--no-cache] [--detail] [--max-chars 520]
 ```
 
-安装后的默认路径：`C:\Users\用户名\.codex\skills\deepseek-prism\scripts\vision.mjs`。Key 从项目根或脚本同目录的 `.env` / 环境变量读取（`SILICONFLOW_API_KEY`、`VISION_API_KEY` 等），脚本内不得读取或打印密钥。
+`<资源目录>` 即技能目录：DSH 中为 `skill` 工具返回的 `resourceBase.path`（默认安装于 `C:\Users\用户名\.dsh\skills\deepseek-prism`）；Codex 中为 `C:\Users\用户名\.codex\skills\deepseek-prism`。Windows 下路径含空格或中文时必须加引号，例如 `node "C:\Users\用户名\.dsh\skills\deepseek-prism\scripts\vision.mjs" see ...`。Key 从项目根或脚本同目录的 `.env` / 环境变量读取（`SILICONFLOW_API_KEY`、`VISION_API_KEY` 等），脚本内不得读取或打印密钥。
 
 ## 查询模板（一次只问一个聚焦问题）
 

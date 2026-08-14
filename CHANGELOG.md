@@ -1,5 +1,46 @@
 # CHANGELOG.md
 
+## [未发布] 2026-08-15
+
+### Added
+
+- 对话发图自动降级：插件宿主半新增可选 `imageFallback` 服务（`transformImages`）——harness 的 api-proxy `prompt` 准入在“当前模型不支持图片且该服务已挂载”时，把上传的图片 part 经视觉流水线转为 VEP/1 文本后再入会话（文本模型会话可直接上传图片并自动识图；未挂载时维持原 `MODEL_DOES_NOT_SUPPORT_IMAGES` 拒绝，转换失败返回 `IMAGE_FALLBACK_FAILED`）。
+- 插件测试新增 2 项：`imageFallback` 图片→VEP/1 文本转换（多图编号 + 文件名标注、文本 part 原样保留）、无密钥指引错误（合计 9 项全部通过）。
+
+### Changed
+
+- harness（经用户确认的纯增量）：`packages/host/apiproxy/src/api-proxy.ts` 新增可选 `ImageFallbackService` 接缝（`ctx.get('imageFallback')`，约 20 行，无其他行为变化）；`api-proxy-models.spec.ts` 新增 3 项测试（未挂载保持拒绝 / 降级转换成功 / 转换失败错误码）；api-proxy 13 项测试、宿主 tsc 重建通过。
+- `dsh-plugin/src/index.ts`：提取 `resolvePrismSettings` / `prismProvider` 共享配置解析，`prism_see` 与 `imageFallback` 复用同一密钥解析顺序（设置文档 → 环境变量 → 默认值），密钥缺失错误文案统一。
+- 移除 DSH 技能安装（经用户确认）：插件形态已覆盖 DSH 上 skill 的全部功能，删除 `C:\Users\YOGIMOV\.dsh\skills\deepseek-prism`；插件运行时仅依赖仓库内 `deepseek-prism/scripts/vision.mjs`，不受影响；保留仓库源码与 Codex 安装副本（`C:\Users\YOGIMOV\.codex\skills\deepseek-prism`）。
+- DSH 前端 VEP 折叠展示（harness 配套，经用户确认）：`ui-conversation` 用户气泡按文本约定（`【DeepSeek Prism 识别：<文件名>】\nVEP/1|…`）把证据折叠为“查看识别结果：<文件名>”链接按钮，点击展开完整 VEP（等宽小字、aria-expanded）；模型仍收到完整证据文本（后端无改动），普通文本与多图顺序不变，复制文本仍含完整 VEP；新增 `tests/message-vep.client.spec.tsx` 6 项，ui-conversation 全量 422 项测试通过；重建客户端 bundle 后刷新页面生效。
+- DSH 识图进度执行链卡片（harness 配套，经用户确认）：`ui-conversation` ChatView 订阅输入机状态，发送含图片的消息时在消息流末尾渲染“DeepSeek Prism 图片识别”执行链卡片（ongoing 状态点 + “正在识别 N 张图片…”），消息落地后消失；纯本地展示不进会话日志；chat-view 新增 2 项用例，ui-conversation 全量 424 项测试通过。
+- Prism 设置卡片仿照重做（经用户确认）：PrismCard 弃用 inline style，仿照 ui-settings-plugins 的 PluginCard/ValueField/SecretField 设计重做（可折叠头部、字段行、保存/放弃脚注，同一套 `--dsw-alias-*` token）；新增 `PrismCard.module.css` 与 CSS Modules 构建链（tsdown lightningcss 虚拟插件 + `src/css-modules.d.ts`，lightningcss link 加入 devDependencies）；插件 typecheck/构建/9 项测试通过。
+- 识别完整提取 + 用量/余额显示 + 执行链修复（经用户确认）：`vision.mjs` ocr 模式改为完整精确提取全部文字（逐字保留不省略），新增 `callVisionWithUsage`（返回 usage）与 `queryBalance`（SiliconFlow `/v1/user/info`，失败静默）；插件降级识别默认完整提取，按设置附加 `【DeepSeek Prism 用量】tokens=…|balance=…|cost=…` 行（余额差为本次消耗），设置新增 `showUsage`（默认开）/`showBalance`（默认关）即时保存开关（PrismCard checkbox 行）；修复执行链卡片：`InputState` 新增 facade 层 `sendingCount`（普通发送走 default-sink、phase 始终 plain 且乐观提交即清空图片，原条件永不成立），hub.sink 置位、RPC settle 清除，ChatView 改订阅该字段；前端 VEP 折叠链接标题显示消耗 token、展开区显示余额与本次消耗；测试：插件 10 项、skill 18 项、ui-conversation 426 项全部通过；重建插件与 ui-conversation bundle，**需重启 web 服务使宿主侧生效**。
+- 动态预算 + 消耗金额修复 + 文案清理（经用户确认）：降级识别预算按图片字节大小三档自适应（≤256KB→512 token、≤1MB→1024、更大→2048；输出触顶 ≥95% 时自动升级一档重试，用量汇总所有轮次），小图省 token、长文完整呈现；消耗金额改为 token × 内置单价估算（GLM-4.5V 输入 ¥0.14/M、输出 ¥0.86/M），替换在余额为 0 或精度不足时失效的余额差算法；设置文案删除“（SiliconFlow）”括注；插件测试 11 项（新增触顶升级用例）全部通过，重建 bundle。
+
+## [未发布] 2026-08-14
+
+### Added
+
+- DSH 插件化：新增 `dsh-plugin/`（`@yogemow/dsh-prism` 组合包）——宿主插件注册 `deepseek-prism` 设置命名空间与模型可见的 `prism_see` 工具（复用 `deepseek-prism/scripts/vision.mjs` 流水线，运行时按仓库相对路径动态导入）；浏览器半注册 设置 → 插件 → 可配置 卡片（视觉 API 密钥 / 模型 / Base URL / 区域，密钥为 `role('secret')` 写后即掩）。安装：`pnpm dsh plugin --profile web add <repo>\dsh-plugin`。
+- 插件测试：`dsh-plugin/tests/host.spec.mjs`（7 项：注册契约、无密钥指引错误、settings 密钥 + mock 视觉 API 端到端 VEP/1、detail 模式、环境变量回退、vision.mjs 定位、默认值一致性）。
+
+### Changed
+
+- 上一条 DSH 适配（技能形态）保留；插件形态与技能形态并存（`prism_see` 工具 + `skill` 工具均可触发识图）。
+- harness 设置暴露（经用户确认的一行纯增量）：`packages/host/apiproxy/src/api-proxy.ts` 的 `WEB_SETTINGS_NAMESPACES` 追加 `'deepseek-prism'`，使设置界面可读写插件命名空间（harness 注释声明该处为插件设置暴露的唯一路径）；重建 `@deepseek-ai/dsh-host-apiproxy`；api-proxy-config 30 项既有测试、oxlint、tsc 均通过；其余 harness 行为与接口协议不受影响。
+
+## [未发布] 2026-08-14
+
+### Added
+
+- DSH 适配：安装到 `C:\Users\用户名\.dsh\skills\deepseek-prism`（DeepSeek Harness 用户技能目录，`$DSH_HOME/skills`），由 harness 的 skill-filesystem / tool-skill 自动发现。
+- 回归测试：`tests/skill-meta.test.mjs` 锁定 DSH 发现契约（frontmatter name/description 合法性、`resourceBase` 路径指引、`scripts/vision.mjs` 存在），防止 SKILL.md 回退为纯 Codex 写法。
+
+### Changed
+
+- `SKILL.md`：命令示例改用 `<资源目录>` 占位符并说明其解析方式（DSH 为 `skill` 工具返回的 `resourceBase.path`，默认 `C:\Users\用户名\.dsh\skills\deepseek-prism`；Codex 为 `C:\Users\用户名\.codex\skills\deepseek-prism`）；强制协议补充 DSH `read_image` 工具；新增 Windows 路径含空格/中文时加引号的说明；其余内容不变，Codex 安装副本仍兼容。
+
 ## [未发布] 2026-08-04
 
 ### Changed

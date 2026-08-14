@@ -73,3 +73,15 @@
 - 决策：2026-08-04 起，项目内所有命令行操作统一使用 PowerShell 7（`pwsh`），不使用 Windows PowerShell 5.1（`powershell.exe`）。
 - 原因：本机 Codex 执行器与用户要求均以 `pwsh` 为准；PS7 默认 UTF-8 编码处理与 `Get-Content -Raw -Encoding utf8` 等行为一致，避免 5.1 的 ANSI/GBK 编码差异与旧语法限制。
 - 代价：依赖 5.1 特性的旧命令需调整为 PS7 语法；文档示例与执行约定需同步标注 `pwsh`。
+
+### D13 脚本路径统一用 `<资源目录>` 占位符，双环境兼容
+
+- 决策：2026-08-14 起，SKILL.md 中所有 `vision.mjs` 调用示例统一使用 `<资源目录>` 占位符，并说明其解析方式：DSH 中为 `skill` 工具返回的 `resourceBase.path`（默认 `C:\Users\用户名\.dsh\skills\deepseek-prism`），Codex 中为 `C:\Users\用户名\.codex\skills\deepseek-prism`；同时支持安装到 `$DSH_HOME/skills`（DSH 用户技能目录）与 `.codex/skills`（Codex）。
+- 原因：DSH 的 skill 加载器返回技能目录（resourceBase）但不枚举目录内容，模型必须从返回值定位脚本；保留 Codex 安装路径说明使两个宿主共享同一份 SKILL.md，避免双份文档漂移。
+- 代价：命令示例中多一层“占位符 → 实际路径”的解析；回归测试（skill-meta.test.mjs）需锁定该契约防止回退。
+
+### D14 DSH 插件形态：设置命名空间 + prism_see 工具 + 浏览器卡片
+
+- 决策：2026-08-14 起，提供 `dsh-plugin/`（`@yogemow/dsh-prism` 组合包）作为 DeepSeek Prism 的 DSH 插件形态：宿主插件通过 `ctx.settings.register('deepseek-prism', …)` 注册设置命名空间（密钥用 `role('secret')`，任何响应不回传值；UI 经脱敏 describe 的 `secrets` 槽位显示已设置状态），注册模型可见的 `prism_see` 工具；浏览器半注册 设置 → 插件 → 可配置 卡片，把密钥与模型等写入 `$DSH_HOME/settings.yaml`。视觉流水线复用技能脚本 `deepseek-prism/scripts/vision.mjs`（运行时动态导入，保持单一事实源）。
+- 原因：用户要求以插件形态部署并在 harness 设置界面配置视觉密钥与模型；设置命名空间 + 槽位卡片是 DSH 既有的标准扩展点，无需改动 harness 本体；`role('secret')` 保证密钥不回传浏览器。
+- 代价：双形态并存（skill + plugin）需要维护两套入口；bundle 依赖与技能目录相邻的仓库布局（link 安装），打包分发需另行处理。

@@ -8,6 +8,8 @@ import {
   buildDetailPrompt,
   buildPrompt,
   cacheKeyFor,
+  callVision,
+  callVisionWithUsage,
   cleanRaw,
   defaultMaxTokensFor,
   defaultTimeoutMsFor,
@@ -16,6 +18,7 @@ import {
   parseArgs,
   parseVisionResult,
   providerRuntime,
+  queryBalance,
   resolveProviderOrder,
   see,
   toVep,
@@ -25,7 +28,7 @@ function tempCacheDir() {
   return mkdtemp(path.join(os.tmpdir(), "dv-cache-"));
 }
 
-test("inferMode 按关键词识别五种模式", () => {
+test("inferMode 按关键词识别八种模式", () => {
   assert.equal(inferMode("提取报错信息和行号"), "error");
   assert.equal(inferMode("extract the error from terminal"), "error");
   assert.equal(inferMode("识别图片中的所有文字"), "ocr");
@@ -33,6 +36,11 @@ test("inferMode 按关键词识别五种模式", () => {
   assert.equal(inferMode("分析图表的趋势和关键指标"), "chart");
   assert.equal(inferMode("检查 UI 界面布局问题"), "ui");
   assert.equal(inferMode("还原这个页面的设计"), "ui");
+  assert.equal(inferMode("对比这两张图的差异"), "diff");
+  assert.equal(inferMode("difference between the two images"), "diff");
+  assert.equal(inferMode("圈出图片中的人在哪里"), "grounding");
+  assert.equal(inferMode("这是什么？"), "qa");
+  assert.equal(inferMode("describe the picture"), "qa");
   assert.equal(inferMode("随便看看"), "general");
 });
 
@@ -78,23 +86,52 @@ test("parseVisionResult 压缩字段并钳制置信度", () => {
   assert.equal(result.cached, false);
 });
 
-test("toVep 输出 VEP/1 并遵守字符预算", () => {
+test("parseVisionResult 解析 grounding / diff / artifacts 字段", () => {
+  const result = parseVisionResult(
+    JSON.stringify({
+      a: "ok",
+      g: [{ o: "按钮", x: 0.1, y: 0.2, w: 0.3, h: 0.1 }, { o: "越界", x: 2, y: 0, w: 1, h: 1 }],
+      d: [{ x: 0.1, y: 0.1, w: 0.2, h: 0.2, desc: "按钮颜色变化" }, { x: 5, y: 0, w: 0, h: 0, desc: "越界" }],
+      art: [{ type: "html", content: "<div>还原</div>" }],
+    }),
+    "siliconflow",
+    "zai-org/GLM-4.5V",
+    "grounding",
+    false
+  );
+  assert.equal(result.groundings.length, 1, "越界坐标被丢弃");
+  assert.deepEqual(result.groundings[0], { o: "按钮", x: 0.1, y: 0.2, w: 0.3, h: 0.1 });
+  assert.equal(result.diffs.length, 1);
+  assert.equal(result.diffs[0].desc, "按钮颜色变化");
+  assert.equal(result.artifacts.length, 1);
+  assert.equal(result.artifacts[0].type, "html");
+});
+
+test("toVep 输出 VEP/2 并遵守字符预算（含 g/d/art 分级裁剪）", () => {
   const result = {
     provider: "siliconflow",
     model: "zai-org/GLM-4.5V",
     mode: "error",
     answer: "Cannot find module ethers",
     text: "src/app.ts:42",
+    groundings: [{ o: "按钮", x: 0.1, y: 0.2, w: 0.3, h: 0.1 }],
+    diffs: [{ x: 0.1, y: 0.1, w: 0.2, h: 0.2, desc: "变化" }],
+    artifacts: [{ type: "html", content: "<div>还原</div>" }],
     confidence: 0.97,
     cached: true,
   };
   const vep = toVep(result);
-  assert.ok(vep.startsWith("VEP/1|src=siliconflow/zai-org/GLM-4.5V|m=error"));
+  assert.ok(vep.startsWith("VEP/2|src=siliconflow/zai-org/GLM-4.5V|m=error"));
   assert.match(vep, /a="Cannot find module ethers"/);
+  assert.match(vep, /g=\[{"o":"按钮"/);
+  assert.match(vep, /d=\[{"x":0\.1/);
+  assert.match(vep, /art=\[{"type":"html"/);
   assert.match(vep, /cache=hit/);
+  // 预算紧张时先丢 g/d/art，再截断文本。
   const small = toVep(result, 60);
   assert.ok(small.length <= 60);
   assert.match(small, /m=error/);
+  assert.doesNotMatch(small, /g=\[/);
 });
 
 test("cacheKeyFor 稳定且随问题/模型变化", () => {
@@ -236,7 +273,7 @@ test("端到端 mock：VEP 输出、缓存命中、失败汇总", async () => {
       { image: imagePath, question: "提取报错信息" },
       env
     );
-    assert.ok(second.startsWith("VEP/1|src=custom/glm-test"));
+    assert.ok(second.startsWith("VEP/2|src=custom/glm-test"));
     assert.match(second, /cache=hit/);
     assert.equal(calls, 1, "第二次应命中缓存，不再请求 mock 服务");
 
@@ -257,5 +294,73 @@ test("端到端 mock：VEP 输出、缓存命中、失败汇总", async () => {
     if (oldCacheDir === undefined) delete process.env.VISION_CACHE_DIR;
     else process.env.VISION_CACHE_DIR = oldCacheDir;
     await rm(cacheDir, { recursive: true, force: true });
+  }
+});
+
+test("callVisionWithUsage 返回文本与 usage，queryBalance 解析余额", async () => {
+  const { server, port } = await startMockServer((req, res) => {
+    if (req.url === "/v1/chat/completions") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          choices: [{ message: { content: '{"a":"ok"}' } }],
+          usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+        })
+      );
+      return;
+    }
+    if (req.url === "/v1/user/info") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ data: { balance: "12.34" } }));
+      return;
+    }
+    res.writeHead(404);
+    res.end();
+  });
+  try {
+    const provider = {
+      id: "siliconflow",
+      name: "test",
+      region: "cn",
+      baseUrl: `http://127.0.0.1:${port}/v1`,
+      apiKeyEnv: "SILICONFLOW_API_KEY",
+      defaultModel: "glm-test",
+      supportsDetail: true,
+      priority: 0,
+      notes: "",
+    };
+    const { text, usage } = await callVisionWithUsage({
+      provider,
+      apiKey: "sk-test",
+      baseUrl: provider.baseUrl,
+      model: "glm-test",
+      prompt: "提取文本",
+      imageDataUrl: "data:image/png;base64,AQ==",
+    });
+    assert.equal(text, '{"a":"ok"}');
+    assert.deepEqual(usage, { promptTokens: 10, completionTokens: 5, totalTokens: 15 });
+    // callVision 包装保持旧契约（仅文本）。
+    const plain = await callVision({
+      provider,
+      apiKey: "sk-test",
+      baseUrl: provider.baseUrl,
+      model: "glm-test",
+      prompt: "提取文本",
+      imageDataUrl: "data:image/png;base64,AQ==",
+    });
+    assert.equal(plain, '{"a":"ok"}');
+    const balance = await queryBalance({
+      baseUrl: provider.baseUrl,
+      apiKey: "sk-test",
+      providerId: "siliconflow",
+    });
+    assert.equal(balance, 12.34);
+    // 非 siliconflow provider 不查询余额。
+    assert.equal(
+      await queryBalance({ baseUrl: provider.baseUrl, apiKey: "sk-test", providerId: "zhipu" }),
+      null
+    );
+  } finally {
+    server.close();
   }
 });
