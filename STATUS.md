@@ -57,9 +57,12 @@
 
 - 图片准入接缝接入（2026-08-15）：重启后用户仍报「该模型不支持识图」——api-proxy 图片准入（纯文本模型 + 图片）要求 `imageFallback` 服务（harness 官方接缝），缺失即拒绝 `MODEL_DOES_NOT_SUPPORT_IMAGES`，旧实现只包装 `sessions.prompt` 未注册接缝。修复：插件 `ctx.provide("imageFallback")`（准入层直接降级，与包装互为兜底；vep 对已降级内容原样返回防二次转换；失败保留原 content 由序列化器剥离兜底；模态判定失败/缺失保守按纯文本降级）；vep 原图块改携原始 base64（兼容 `durablePromptContent` 持久化）。**需重启 harness 生效**。插件测试 37 项、仓库全量 70 项通过。
 
+- 部署故障修复（2026-08-15，v0.6.0 之后）：用户报「插件无法正常使用」——诊断确认插件本体已加载（`prism_see` 工具、settings 命名空间、`imageFallback` 接缝均在线，harness 补丁已生效），根因是 `~/.dsh/settings.yaml` 的 `deepseek-prism.apiKey` 存了 DeepSeek API Key（与 `DEEPSEEK_API_KEY` 相同），而视觉提供方是 SiliconFlow，插件按 `settings.apiKey` 优先取到错误密钥 → SiliconFlow HTTP 401 "Token is invalid"。正确的 `SILICONFLOW_API_KEY` 早已在 `.credentials.yaml`，只是从未被使用。修复：通过 settings 服务（一次性动态插件，null-prototype 对象跨 sandbox realm 写入）将 `deepseek-prism.apiKey` 更新为凭据库中的 SiliconFlow Key；`prism_see` 实测恢复（返回 VEP/2 证据）。注：动态插件宿主代码运行在 `node:vm` 沙箱 realm，直接传对象字面量会被宿主 `isPlainObject` 拒绝，需用 `Object.create(null)` 构造补丁对象。
+- 发布 v0.6.1（2026-08-15）：用户实测通过（图片准入降级链路恢复：`【DeepSeek Prism 识别：…】` VEP/2 证据 + 用量行正常，前端折叠 bundle 已在运行中服务器生效）；CHANGELOG 追加 0.6.1 条目（部署故障排查与跨 realm 写入附注）；双包（`@yogemow/deepseek-prism-dsh` / `@yogemow/deepseek-prism-skill`）发布 GitHub Packages 并作为 GitHub Release v0.6.1 资产。
+
 ## 进行中
 
-- 无（主线已切换为 harness 补丁完整路线并重新安装到 DSH；需重启 harness 生效，待用户验证）。
+- 无（v0.6.1 已发布；用户实测识图链路恢复，等待后续反馈）。
 
 ## 待处理
 

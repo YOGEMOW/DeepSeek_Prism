@@ -1,5 +1,12 @@
 # CHANGELOG.md
 
+## [0.6.1] 2026-08-15
+
+### Fixed
+
+- **DSH 部署「插件无法正常使用」排查与修复**（配置层，无需改代码）：用户报识图不可用，实测 `prism_see` 与图片准入降级均报 **SiliconFlow HTTP 401 "Token is invalid"**。逐项排查确认插件本体正常（`prism_see` 工具已注册、`deepseek-prism` 设置命名空间已注册、`imageFallback` 接缝在运行中 host 产物中生效、前端 VEP 折叠/进度卡片 bundle 已在线上服务）；根因是 `~/.dsh/settings.yaml` 的 `deepseek-prism.apiKey` 误存为 **DeepSeek API Key**（与 `DEEPSEEK_API_KEY` 完全相同），而视觉提供方是 SiliconFlow——插件密钥解析顺序为 `settings.apiKey` 优先于凭据库/环境变量，错误密钥遮蔽了 `.credentials.yaml` 中早已配置好的 `SILICONFLOW_API_KEY`。修复：经 settings 服务把 `deepseek-prism.apiKey` 更新为凭据库中的 SiliconFlow Key；`prism_see` 实测恢复（VEP/2 证据 + 用量行正常），准入降级同链路一并恢复。无需重启 harness。
+- **动态插件宿主跨 realm 写入 settings 的坑（诊断附注）**：动态插件 `code.host` 运行在 `node:vm` 沙箱 realm，直接传对象字面量给宿主 settings 服务会被 `isPlainObject` 拒绝（跨 realm 原型不相等）；需用 `Object.create(null)` 构造补丁对象。
+
 ## [0.6.0] 2026-08-15
 
 ### Added
