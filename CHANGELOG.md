@@ -2,6 +2,10 @@
 
 ## [未发布]
 
+### Fixed
+
+- **保存配置过慢**（DSH 设置卡片）：保存路径由「逐字段串行 RPC」改为「**一次 `settings.mutate` 批量提交全部字段**」——原来每个暂存字段各发一次 `settings.mutate` RPC，宿主端每次都要文件锁 + 全量写盘 + `document-updated` 广播（广播又触发所有设置 scope 的全量 `describe` 回读），8 个字段 ≈ 8 次串行完整往返；现在合并为单次 RPC（宿主单次排队/写盘/广播），并以 mutate 响应 view 的 `user` 层逐 op 验证落地，失败回读 `scope.load()` 恢复真实状态。`apiKey` 仍单独走 credentials 域（每保存最多 2 次 RPC）。新增 `tests/client-save.test.mjs`（9 项，覆盖批量合并、落地验证、冲突回读、apiKey 分支、无效草稿、reset unset）。
+
 ### Changed
 
 - **DSH 设置卡片 UI 重做**（PluginCard 风格）：`packages/plugin-dsh` 的 client 卡片改为与 harness 其他插件卡片一致的可折叠卡片——头部（名称/描述/未保存徽章/chevron）+ 字段行（标签/已覆盖徽章/重置/提示，密钥密码框 + 已配置徽章）+ 保存/放弃脚注，全部改用 `--dsw-alias-*` 主题 token（原硬编码颜色移除）。

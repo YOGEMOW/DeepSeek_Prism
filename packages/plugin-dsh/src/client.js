@@ -224,19 +224,43 @@ class PrismCardController {
 
   async save() {
     const plan = this.plan();
-    const writes = plan.flatMap((item) => item.run === undefined ? [] : [item.run]);
-    if (plan.length === 0 || this.saving || writes.length !== plan.length) return;
+    if (plan.length === 0 || this.saving) return;
+    if (plan.some((item) => item.op === undefined && item.run === undefined)) return;
     this.saving = true;
     this.failed = false;
     this.publish();
     let landed = true;
-    for (const write of writes) {
-      landed = (await write()) && landed;
+    const ops = buildMutateOps(plan);
+    if (ops.length > 0) {
+      landed = await this.mutateSettings(ops);
+      if (!landed) await this.scope.load();
     }
+    const keyItem = plan.find((item) => item.field === 'apiKey');
+    if (landed && keyItem !== undefined) landed = await keyItem.run();
     if (landed) this.staged.clear();
     this.saving = false;
     this.failed = !landed;
     this.publish();
+  }
+
+  /**
+   * 一次 `settings.mutate` 提交全部设置字段（host 端单次排队、单次写盘、
+   * 单次 document-updated 广播），以响应 view 验证每个 op 落地。
+   */
+  async mutateSettings(ops) {
+    const snapshot = this.scope.getSnapshot();
+    let response;
+    try {
+      response = await this.api.settings.mutate({
+        ns: SETTINGS_NS,
+        ops,
+        ...(snapshot.revision === undefined ? {} : { expectedRevision: snapshot.revision }),
+      });
+    } catch {
+      return false;
+    }
+    if (!response?.result?.ok) return false;
+    return verifyMutateLanded(response.result.value, ops);
   }
 
   plan() {
@@ -249,26 +273,16 @@ class PrismCardController {
       }
       const spec = this.spec(field);
       if (staged.clear) {
-        if (this.stored(field)) plan.push({ field, run: () => this.clear(field) });
+        if (this.stored(field)) plan.push({ field, op: { op: 'unset', path: [field] } });
         continue;
       }
       if (staged.text === spec.format(this.sectionValue(field))) continue;
       const write = spec.parse(staged.text);
       if (write === undefined) plan.push({ field, run: undefined });
-      else if (write.kind === 'clear') plan.push({ field, run: () => this.clear(field) });
-      else plan.push({ field, run: () => this.store(field, write.value) });
+      else if (write.kind === 'clear') plan.push({ field, op: { op: 'unset', path: [field] } });
+      else plan.push({ field, op: { op: 'set', path: [field], value: write.value } });
     }
     return plan;
-  }
-
-  async clear(field) {
-    await this.scope.unset(field);
-    return !this.stored(field);
-  }
-
-  async store(field, value) {
-    await this.scope.set(field, value);
-    return this.userLayer()?.[field] === value;
   }
 
   async writeKey(value) {
@@ -342,6 +356,30 @@ class PrismCardController {
   publish() {
     this.store.set(this.projection());
   }
+}
+
+/** 从保存计划收集 settings 域 mutate ops（apiKey 与无效项不产生 op）。 */
+function buildMutateOps(plan) {
+  const ops = [];
+  for (const item of plan) {
+    if (item.op !== undefined) ops.push(item.op);
+  }
+  return ops;
+}
+
+/** 用一次 mutate 的响应 view（redacted，含 user 层与 revision）验证每个 op 已落地。 */
+function verifyMutateLanded(view, ops) {
+  if (view === undefined || typeof view !== 'object') return false;
+  const user = view.user;
+  for (const op of ops) {
+    const field = op.path[0];
+    if (op.op === 'unset') {
+      if (user !== undefined && typeof user === 'object' && Object.hasOwn(user, field)) return false;
+    } else if (user === undefined || typeof user !== 'object' || user[field] !== op.value) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /* ---------- 卡片渲染（PluginCard 风格，--dsw 主题 token；React.createElement，无 JSX） ---------- */
@@ -669,6 +707,6 @@ function apply(ctx) {
   });
 }
 
-module.exports = { inject, apply };
+module.exports = { inject, apply, PrismCardController, buildMutateOps, verifyMutateLanded };
 return module.exports;
 } });

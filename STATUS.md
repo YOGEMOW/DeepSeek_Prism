@@ -49,9 +49,11 @@
 
 - 设置界面集成（2026-08-14，随 v0.5.0 发布）：DSH 插件注册 `deepseek-prism-dsh` 设置命名空间，harness 设置页「插件」页新增 DeepSeek Prism 卡片——视觉 API 密钥（password 只写 + 「已配置」徽标，经 credentials 凭据库存储，明文不回显）+ Provider/模型/区域/凭据引用（写入设置段后注入 `process.env`，vision.mjs 免 .env）；客户端为手写 `__ModuleLoader__` bundle（零构建）；harness `WEB_SETTINGS_NAMESPACES` 加一行 allowlist（本地补丁）；插件测试 18 项、全量 61 项通过；发布 v0.5.0。
 
+- 设置卡片保存提速（2026-08-15）：诊断「保存配置很慢」根因——保存路径逐字段串行 RPC，每个字段一次 `settings.mutate`，宿主端每次都要文件锁 + 全量写盘 + `document-updated` 广播（广播再触发所有设置 scope 的全量 describe 回读），8 个字段 ≈ 8 次串行完整往返；改为一次 `settings.mutate` 批量提交全部字段（单次排队/写盘/广播），以响应 view 的 user 层逐 op 验证落地、失败回读 `scope.load()`；apiKey 仍走 credentials 域（每保存 ≤2 次 RPC）。新增 client 保存路径测试 9 项；插件测试 32 项、仓库全量 66 项通过。
+
 ## 进行中
 
-- 无（v0.5.0 已发布）。
+- 无（设置卡片 UI 重做 + 保存提速已完成，待用户刷新验证）。
 
 ## 待处理
 
