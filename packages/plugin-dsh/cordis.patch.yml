@@ -1,2 +1,4 @@
-- id: deepseek-prism-dsh
-  name: '@yogemow/deepseek-prism-dsh'
+# 以 insert 语义把插件条目加入 profile 组合（与 dsh-base 的 patch 写法一致）
+- insert:
+    - id: deepseek-prism-dsh
+      name: '@yogemow/deepseek-prism-dsh'
