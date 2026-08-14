@@ -1,0 +1,64 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/cordis
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/cordis
+      '@deepseek-ai/dsh-api-remotes':
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-api-remotes
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-api-remotes
+      '@deepseek-ai/dsh-client-connection':
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-connection
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-connection
+      '@deepseek-ai/dsh-client-locale':
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-locale
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-locale
+      '@deepseek-ai/dsh-client-runtime':
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-runtime
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-runtime
+      '@deepseek-ai/dsh-client-ui-settings':
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-ui-settings
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-ui-settings
+      '@deepseek-ai/dsh-client-ui-settings-plugins':
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-ui-settings-plugins
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-ui-settings-plugins
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-ui-slots
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-ui-slots
+      '@deepseek-ai/dsh-client-web-react':
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-web-react
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-client-web-react
+      '@deepseek-ai/dsh-settings':
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-settings
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-settings
+      '@deepseek-ai/dsh-tools':
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-tools
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/dsh-tools
+      '@deepseek-ai/schemastery':
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/schemastery
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/schemastery
+      '@types/node':
+        specifier: link:E:/Git/repositoris/deepseek-harness/node_modules/@types/node
+        version: link:../../deepseek-harness/node_modules/@types/node
+      '@types/react':
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@types/react
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@types/react
+      lightningcss:
+        specifier: link:E:/Git/repositoris/deepseek-harness/node_modules/lightningcss
+        version: link:../../deepseek-harness/node_modules/lightningcss
+      react:
+        specifier: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/react
+        version: link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/react
+      tsdown:
+        specifier: link:E:/Git/repositoris/deepseek-harness/node_modules/tsdown
+        version: link:../../deepseek-harness/node_modules/tsdown
+      typescript:
+        specifier: link:E:/Git/repositoris/deepseek-harness/node_modules/typescript
+        version: link:../../deepseek-harness/node_modules/typescript
