@@ -5,6 +5,8 @@ description: 当 DeepSeek 等纯文本模型无法直接查看图片时，通过
 
 # DeepSeek Prism
 
+> 双平台 Skill：Codex 与 DeepSeek Harness（DSH）通用。Codex 安装于 `C:\Users\用户名\.codex\skills\deepseek-prism`；DSH 安装于 `C:\Users\用户名\.dsh\skills\deepseek-prism`。`agents/openai.yaml` 仅 Codex 消费，DSH 忽略。
+
 ## 密钥配置（必读）
 
 首次使用前必须配置至少一个视觉服务的 API 密钥，否则所有识别都会失败。三种方式任选其一（按查找顺序）：
@@ -24,9 +26,10 @@ node <技能路径>/scripts/vision.mjs doctor
 ```
 
 密钥属于敏感信息，请勿把密钥内容发到对话或提交到仓库。
+
 ## 强制协议（遇到图片时必须先执行）
 
-1. 先尝试直接查看/读取图片（视图工具或文件读取）。
+1. 先尝试直接查看/读取图片（Codex 视图工具 / DSH 的 `read_image` 工具或文件读取）。
 2. 若出现以下任一信号，说明当前模型无法读取像素：
    - `Unsupported format` / `Unsupported Image`
    - `Failed to read image` / `cannot read image`
@@ -41,16 +44,21 @@ node <技能路径>/scripts/vision.mjs doctor
 
 ```text
 我无法直接查看图片，改用 DeepSeek Prism 分析：
-node <skill路径>/scripts/vision.mjs see --image <图片路径> --question "只提取错误信息和行号"
+node <技能路径>/scripts/vision.mjs see --image <图片路径> --question "只提取错误信息和行号"
 ```
 
 ## 命令
 
 ```bash
-node <skill路径>/scripts/vision.mjs see --image <本地路径或URL> --question <一个聚焦问题> [--provider id] [--json] [--no-cache] [--detail] [--compact] [--raw] [--full] [--max-chars 520]
+node <技能路径>/scripts/vision.mjs see --image <本地路径或URL> --question <一个聚焦问题> [--provider id] [--json] [--no-cache] [--detail] [--compact] [--raw] [--full] [--max-chars 520]
 ```
 
-安装后的默认路径：`C:\Users\用户名\.codex\skills\deepseek-prism\scripts\vision.mjs`。Key 从项目根或脚本同目录的 `.env` / 环境变量读取（`SILICONFLOW_API_KEY`、`VISION_API_KEY` 等），脚本内不得读取或打印密钥。
+安装后的默认路径：
+
+- Codex：`C:\Users\用户名\.codex\skills\deepseek-prism\scripts\vision.mjs`
+- DSH：`C:\Users\用户名\.dsh\skills\deepseek-prism\scripts\vision.mjs`
+
+Key 从环境变量 / 运行目录 `.env` / 技能根目录 `.env` 读取（`SILICONFLOW_API_KEY`、`VISION_API_KEY` 等），脚本内不得读取或打印密钥。
 
 ## 查询模板（一次只问一个聚焦问题）
 
@@ -77,7 +85,7 @@ node <skill路径>/scripts/vision.mjs see --image <本地路径或URL> --questio
 - 超长内容：输出无自然结束标记（`finish_reason=length`、括号不平衡、尾随 `|` `,` `:` `-` 等）时自动“续写”，用上一段结尾作锚点再次调用，直到模型回答“没有更多内容”，最后合并输出；续写次数上限默认 8（`VISION_MAX_CONTINUATIONS` 可调，0 关闭续写），达到上限仍不完整时末尾标注 `[截断]`。
 - `--detail` 强制完整通道；`--compact` 强制 VEP/1；`VISION_DETAIL_AUTO=auto|always|never` 可整体控制自动分级。
 - `--raw` 只输出清洗后的原始文本；`--full` 隐含完整通道并输出 `{raw, parsed}` JSON 信封，便于程序化消费。
-- 图片超过 `VISION_RESIZE_MAX`（默认 2048px）时，`VISION_RESIZE_TOOL=auto|sharp|skip`（默认 auto）使用 Codex 内置 sharp 等比缩放后再上传，不依赖宿主安装的 Python 等工具；动画 GIF 缩放后保留全部帧；AVIF/TIFF/SVG 等格式通过 sharp metadata 回退识别尺寸，同样参与自动分级与缩放（AVIF/TIFF/SVG 统一转 PNG）；超过 `VISION_MAX_INPUT_PIXELS`（默认 268MP）的输入跳过缩放；找不到 sharp 时跳过并在 stderr 警告。旧版缓存条目会自动清理。
+- 图片超过 `VISION_RESIZE_MAX`（默认 2048px）时，`VISION_RESIZE_TOOL=auto|sharp|skip`（默认 auto）使用 sharp 等比缩放后再上传：自动查找顺序为 `VISION_SHARP_PATH` → Codex 桌面运行时（`~/.cache/codex-runtimes/...`）→ DSH Web 运行时（`~/.dsh/profiles/node_modules/sharp`，优先 `DSH_HOME` 解析）→ 技能目录 `node_modules/sharp`，不依赖宿主安装 Python 等工具；动画 GIF 缩放后保留全部帧；AVIF/TIFF/SVG 等格式通过 sharp metadata 回退识别尺寸，同样参与自动分级与缩放（AVIF/TIFF/SVG 统一转 PNG）；超过 `VISION_MAX_INPUT_PIXELS`（默认 268MP）的输入跳过缩放；找不到 sharp 时跳过缩放并在 stderr 警告。旧版缓存条目会自动清理。
 
 ## 像素级任务用 --detail
 

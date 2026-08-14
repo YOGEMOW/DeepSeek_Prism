@@ -1,6 +1,6 @@
 # DeepSeek_Prism
 
-为纯文本 DeepSeek 模型（如 `deepseek-v4-flash`）提供按需识图能力的 Codex Skill：图片由外部视觉 API 提取可见事实，压缩为低 Token 的 VEP/1 视觉证据包回传主模型，由主模型继续完成推理、规划与决策。
+为纯文本 DeepSeek 模型（如 `deepseek-v4-flash`）提供按需识图能力的 Codex / DeepSeek Harness（DSH）双平台 Skill：图片由外部视觉 API 提取可见事实，压缩为低 Token 的 VEP/1 视觉证据包回传主模型，由主模型继续完成推理、规划与决策。
 
 ## 功能
 
@@ -9,17 +9,20 @@
 - `--detail` 五模式分节报告：页面还原（A1–A7）/ 问题定位 / 报错日志 / 文本表格 / 图表数据。
 - 自动分级：小图/简单任务默认 VEP/1；长内容（代码截图、长日志、文档、宽/高比大的图）自动走 `--detail` 完整通道；超长内容自动续写并合并。
 - 程序化输出：`--raw` 输出清洗后的原文；`--full` 输出 `{raw, parsed}` JSON 信封。
-- 输入预处理：解析图片宽高（含 AVIF/TIFF/SVG 的 sharp metadata 回退），超过 2048px 时用 Codex 内置 sharp（libvips）等比缩放后再上传，不依赖宿主安装 Python 等工具；动画 GIF 缩放后保留全部帧，AVIF/TIFF/SVG 统一转为 PNG 保证视觉 API 兼容。
+- 输入预处理：解析图片宽高（含 AVIF/TIFF/SVG 的 sharp metadata 回退），超过 2048px 时用 sharp（libvips）等比缩放后再上传，不依赖宿主安装 Python 等工具；sharp 自动查找 Codex 桌面运行时 / DSH Web 运行时（`~/.dsh/profiles/node_modules/sharp`）/ 技能目录 `node_modules/sharp`（或 `VISION_SHARP_PATH` 指定）；动画 GIF 缩放后保留全部帧，AVIF/TIFF/SVG 统一转为 PNG 保证视觉 API 兼容。
 - 多 Provider 预设与自动降级：SiliconFlow（测试首选）/ 智谱 / ModelScope / 阿里 / OpenRouter / Groq。
 - SHA-256 本地缓存：TTL 24 小时、上限 1000 条，`--no-cache` 可跳过。
 - 零运行时依赖：仅需 Node.js >= 18（内置 fetch / crypto / node:test）。
 
 ## 安装
 
-1. 将 `deepseek-prism/` 复制到技能目录：
+1. 将 `deepseek-prism/` 复制到对应平台的技能目录：
 
    ```powershell
+   # Codex
    Copy-Item -Recurse deepseek-prism C:\Users\用户名\.codex\skills\deepseek-prism
+   # DeepSeek Harness（DSH）
+   Copy-Item -Recurse deepseek-prism C:\Users\用户名\.dsh\skills\deepseek-prism
    ```
 
 2. 配置密钥（任选其一，脚本按顺序查找：环境变量 → 运行目录 `.env` → 脚本目录 `.env` → 技能根目录 `.env`）：
@@ -33,13 +36,13 @@
    - 或设置用户环境变量 `SILICONFLOW_API_KEY`（推荐，所有项目通用）；
    - 或在技能根目录（SKILL.md 所在目录）创建 `.env`（写入同样内容）。
 
-3. 让 Codex 重新加载技能列表（按 Codex 技能发现机制刷新）。
+3. 让宿主重新加载技能列表（Codex 按技能发现机制刷新；DSH 的 skill-filesystem watcher 自动发现新目录，无需重启）。
 
-运行要求：Node.js >= 18（内置 fetch / node:test）；缩放使用 Codex 桌面运行时自带的 sharp，无需额外安装。
+运行要求：Node.js >= 18（内置 fetch / node:test）；缩放自动使用 Codex 桌面运行时 / DSH Web 运行时自带的 sharp，无需额外安装。
 
 ### 纯 CLI 环境可选：安装 sharp（仅大图缩放需要）
 
-Codex 桌面运行时自带 sharp，开箱即用。若在纯 CLI 环境使用且需要大图等比缩放：
+Codex 桌面运行时与 DSH Web 运行时均自带 sharp，开箱即用。若在纯 CLI 环境（两者都没有）使用且需要大图等比缩放：
 
 ```powershell
 # 方式一：安装到技能目录（脚本会自动查找 deepseek-prism/node_modules/sharp）
@@ -91,7 +94,7 @@ node deepseek-prism/scripts/vision.mjs cache stats
 | `VISION_RESIZE_TOOL` | 大图缩放后端：`auto` / `sharp` / `skip`（默认 `auto`，找不到内置 sharp 时跳过并在 stderr 警告） |
 | `VISION_RESIZE_MAX` | 大图缩放边长阈值（默认 2048px） |
 | `VISION_MAX_INPUT_PIXELS` | 输入像素上限，超过则跳过缩放（默认 268435456，即 sharp 默认解压上限） |
-| `VISION_SHARP_PATH` | 可选：手动指定 sharp 包路径（默认自动查找 Codex 运行时） |
+| `VISION_SHARP_PATH` | 可选：手动指定 sharp 包路径（默认自动查找 Codex 运行时 / DSH Web 运行时 / 技能目录 node_modules） |
 
 Key 只走 `.env` 或进程环境，绝不进入命令行、日志或提交历史。
 

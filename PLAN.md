@@ -10,10 +10,11 @@
 4. Skill 实现与验证：SKILL.md / references / agents/openai.yaml / `scripts/vision.mjs` 完成；12 项单元与 mock 测试通过；quick_validate 通过；SiliconFlow 真实冒烟（error / ocr / ui / --detail）通过。
 5. 安装与提交：Skill 复制安装到 `C:\Users\用户名\.codex\skills\deepseek-prism`；初始提交 `1a3f3d0`。
 6. 更名：项目与 Skill 由 DeepSeek_Vision / deepseek-vision 更名为 DeepSeek_Prism / deepseek-prism（显示名 “DeepSeek Prism”）。
+7. DSH 平台适配（2026-08-14，v0.3.0）：sharp 查找新增 DSH Web 运行时（`~/.dsh/profiles/node_modules/sharp`）与 DSH 用户根候选；SKILL.md / README / references/providers.md / PROJECT / PLAN / STATUS / DECISIONS / RISKS 双平台化；测试与 SiliconFlow 真实冒烟通过；发布 v0.3.0。
 
 ### 当前进行中
 
-- 无（v0.1.0 已完成）。
+- 无（v0.3.0 已完成）。
 
 ### 后续待办
 

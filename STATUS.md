@@ -34,9 +34,14 @@
 
 - 输出策略自动分级与续写（2026-08-05，随 v0.2.0 发布）：小图/简单任务保持 VEP/1；长内容自动走 `--detail` 完整通道；超长自动续写合并（`VISION_MAX_CONTINUATIONS` 可调，默认 8，合并时折叠重复围栏）；新增 `--raw` / `--full` / `--compact` 与 `VISION_DETAIL_AUTO`；字段预算随 `--max-chars` 缩放并带 `[截断]` 标记；图片宽高解析（含 AVIF/TIFF/SVG 的 sharp metadata 回退）与内置 sharp 等比缩放（不依赖宿主环境，动画 GIF 保留全部帧，AVIF/TIFF/SVG 统一转 PNG，`VISION_MAX_INPUT_PIXELS` 防超大输入）；Provider `outputLimit` 感知（OpenRouter/Groq 8192）；缓存 key 按输出通道隔离，旧格式条目自动清理，缓存原子写，`--no-cache` 不再写缓存；测试命令统一为 `node --test` 兼容 Node 18/20/22/24；`doctor` 输出 Node 版本与缩放后端状态；审计 11 项缺陷全部修复并补回归测试；测试扩至 42 项全部通过；skill-creator quick_validate 通过（PyYAML 6.0.3）；SiliconFlow 真实冒烟通过（VEP / 自动 detail / --full / 大图缩放 / 256 token 强制截断下 5 次调用真实续写合并）。
 - 发布 v0.2.0（2026-08-05）：自动分级与续写、`--raw`/`--full`/`--compact`、字段预算缩放与截断标记、内置 sharp 缩放（AVIF/TIFF/SVG 回退转 PNG、像素上限）、Provider `outputLimit`、缓存清理与原子写、Node 多版本兼容、11 项审计缺陷修复；42 项测试与 quick_validate 通过；真实冒烟通过；已同步安装副本并推送 GitHub Release。
+
+- DSH 平台适配（2026-08-14，随 v0.3.0 发布）：Skill 升级为 Codex / DeepSeek Harness 双平台通用——`vision.mjs` sharp 查找新增 DSH Web 运行时（`~/.dsh/profiles/node_modules/sharp`，含 `DSH_HOME` 解析）与 DSH 用户根候选；SKILL.md 触发协议补充 DSH `read_image` 工具并给出两套安装路径；README / references/providers.md / PROJECT / PLAN / RISKS 同步双平台说明；DECISIONS 记录 D15；已同步 DSH 安装副本（`C:\Users\用户名\.dsh\skills\deepseek-prism`，含 `.env` 密钥配置）。
+
+- 发布 v0.3.0（2026-08-14）：DSH 双平台适配；42 项测试与 quick_validate 通过；SiliconFlow 真实冒烟通过；GitHub Release `v0.3.0` 创建并推送 tag。
+
 ## 进行中
 
-- 无（v0.2.0 已发布）。
+- 无（v0.3.0 已发布）。
 
 ## 待处理
 

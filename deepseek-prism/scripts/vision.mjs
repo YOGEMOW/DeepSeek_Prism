@@ -455,6 +455,14 @@ function sharpCandidates(env = process.env) {
   } catch {
     // 无 codex-runtimes 目录时忽略
   }
+  // DeepSeek Harness 适配：DSH Web 运行时自带 sharp（~/.dsh/profiles/node_modules/sharp）
+  for (const dshSharp of [
+    env.DSH_HOME ? path.join(env.DSH_HOME, "profiles", "node_modules", "sharp") : null,
+    path.join(os.homedir(), ".dsh", "profiles", "node_modules", "sharp"),
+    path.join(os.homedir(), ".dsh", "node_modules", "sharp"),
+  ]) {
+    if (dshSharp) candidates.push(dshSharp);
+  }
   candidates.push(path.join(SCRIPT_DIR, "..", "node_modules", "sharp"));
   return candidates;
 }
@@ -520,7 +528,7 @@ export async function resizeImageIfNeeded(bytes, env = process.env) {
     return { bytes, resized: false, info, format: info.format };
   }
   if (!sharp) {
-    console.error("[VISION] 未找到内置 sharp（Codex 运行时），跳过缩放");
+    console.error("[VISION] 未找到 sharp（已查找 VISION_SHARP_PATH / Codex 运行时 / DSH profiles / 技能目录 node_modules），跳过缩放");
     return { bytes, resized: false, info, format: info.format };
   }
   try {
@@ -1197,7 +1205,7 @@ async function commandProviders(env = process.env) {
 
 async function commandDoctor(env = process.env) {
   const resizeBackend = loadSharp(env)
-    ? "sharp（Codex 运行时或本地安装）"
+    ? "sharp（Codex 运行时 / DSH profiles / 技能目录 node_modules / VISION_SHARP_PATH）"
     : "未找到（大图只检测不缩放）";
   const lines = [
     "DeepSeek Prism doctor",

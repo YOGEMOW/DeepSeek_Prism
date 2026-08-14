@@ -85,3 +85,9 @@
 - 决策：2026-08-05 起，超过 `VISION_RESIZE_MAX`（默认 2048px）的图片通过 `VISION_RESIZE_TOOL=auto|sharp|skip`（默认 auto）等比缩放后再上传；`auto` 自动查找 Codex 桌面运行时自带 sharp（libvips），不依赖宿主安装 Python/Pillow 等外部工具；找不到 sharp 时跳过并在 stderr 警告，不阻塞主流程。
 - 原因：Node 内置能力无法真实解码/重编码位图，引入 npm 依赖违背 D4 零依赖决策；依赖宿主 Python 会让不同用户机器行为不一致；sharp 由 Codex 运行时统一提供，多用户无需安装。
 - 代价：非 Codex 桌面环境下（纯 CLI 且未安装 sharp）只做尺寸检测不缩放；可通过 `VISION_SHARP_PATH` 手动指定；动画 GIF 使用 `animated: true` 缩放，保留全部帧，缩放失败时回退上传原图，绝不静默丢帧；AVIF/TIFF/SVG 等自有解析器不识别的格式通过 sharp metadata 回退识别尺寸并参与缩放，缩放后统一转 PNG；`VISION_MAX_INPUT_PIXELS` 限制超大输入（2026-08-05 补充）。
+
+### D15 双平台适配（Codex + DeepSeek Harness）
+
+- 决策：2026-08-14 起，Skill 同时支持 Codex 与 DeepSeek Harness（DSH）：`vision.mjs` sharp 查找在 Codex 运行时之外新增 DSH Web 运行时（`~/.dsh/profiles/node_modules/sharp`，优先 `DSH_HOME` 解析）与 DSH 用户根候选；SKILL.md / README 给出 Codex（`C:\Users\用户名\.codex\skills\deepseek-prism`）与 DSH（`C:\Users\用户名\.dsh\skills\deepseek-prism`）两套安装路径；触发协议补充 DSH `read_image` 工具。
+- 原因：用户实际以 DSH（deepseek-harness）为宿主；Codex Skill 结构（SKILL.md + scripts + references + agents/openai.yaml）与 DSH skill 发现机制（`<技能名>/SKILL.md` + YAML frontmatter）同构，仅需补充平台相关的 sharp 查找与文档路径。
+- 代价：文档需维护两套安装路径；`agents/openai.yaml` 仅 Codex 消费，DSH 安装副本中为惰性文件（不产生行为）。

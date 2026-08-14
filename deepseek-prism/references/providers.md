@@ -31,7 +31,7 @@
 | VISION_RESIZE_TOOL | 大图缩放后端：auto / sharp / skip | auto |
 | VISION_RESIZE_MAX | 大图缩放边长阈值 | 2048 |
 | VISION_MAX_INPUT_PIXELS | 输入像素上限（超过则跳过缩放） | 268435456 |
-| VISION_SHARP_PATH | 手动指定 sharp 包路径（默认自动查找 Codex 运行时） | 无 |
+| VISION_SHARP_PATH | 手动指定 sharp 包路径（默认自动查找 Codex 运行时 / DSH profiles（`~/.dsh/profiles/node_modules/sharp`）/ 技能目录 node_modules/sharp） | 无 |
 | VISION_CACHE_DIR | 缓存目录 | .vision-cache |
 
 ## 配置步骤

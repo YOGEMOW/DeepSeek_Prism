@@ -1,5 +1,22 @@
 # CHANGELOG.md
 
+## [0.3.0] 2026-08-14
+
+### Added
+
+- DeepSeek Harness（DSH）平台适配：Skill 升级为 Codex / DSH 双平台通用。
+  - `scripts/vision.mjs` sharp 自动查找新增 DSH Web 运行时候选（`~/.dsh/profiles/node_modules/sharp`，含 `DSH_HOME` 解析）与 DSH 用户根候选（`~/.dsh/node_modules/sharp`），DSH 环境大图缩放开箱即用。
+  - SKILL.md：触发协议补充 DSH `read_image` 工具；命令章节给出 Codex / DSH 两套默认安装路径；sharp 查找顺序说明双平台（`VISION_SHARP_PATH` → Codex 运行时 → DSH profiles → 技能目录 node_modules）。
+  - `doctor` 与缩放警告文案更新为双平台查找说明；references/providers.md 的 `VISION_SHARP_PATH` 行同步。
+  - README：安装章节新增 DSH 安装方式（`C:\Users\用户名\.dsh\skills\deepseek-prism`）与宿主刷新说明；说明 `agents/openai.yaml` 仅 Codex 使用（DSH 忽略）。
+  - PROJECT / PLAN / STATUS / DECISIONS / RISKS 同步双平台定位；DECISIONS 新增 D15。
+
+### Test
+
+- `node --test` 42 项全部通过（DSH sharp 环境实测：大图等比缩放、GIF 动画帧保留、AVIF/TIFF/SVG 尺寸回退、`VISION_SHARP_PATH` 重试）。
+- skill-creator `quick_validate.py` 通过。
+- SiliconFlow 真实冒烟通过：DSH 安装副本 `see --json` 正确提取报错截图（error 模式，含文件:行号）。
+
 ## [0.2.0] 2026-08-05
 
 ### Added
