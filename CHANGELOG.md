@@ -1,5 +1,20 @@
 # CHANGELOG.md
 
+## [0.3.1] 2026-08-14
+
+### Added
+
+- 无扩展名图片文件支持：`readImageSource` 在扩展名未知时按魔数嗅探 MIME（PNG/JPEG/GIF/BMP/WebP/AVIF/TIFF/SVG），适配 DSH 附件对象路径等无扩展名来源。
+- SKILL.md 补充 DSH 图片附件注入说明：纯文本模型场景下用户上传的图片会以 `[图片附件 …已保存到 <路径>]` 文本块进入会话，直接以该路径调用本 Skill 脚本即可。
+
+### Fixed
+
+- DSH 纯文本模型识图链路：DSH 宿主不再拒绝纯文本模型的图片上传，而是将图片落盘为内容寻址对象并注入路径文本；`vision.mjs` 可分析该无扩展名对象文件（配合魔数嗅探）。
+
+### Test
+
+- `node --test` 43 项全部通过（新增 `sniffImageMime` 8 类魔数用例）。
+
 ## [0.3.0] 2026-08-14
 
 ### Added

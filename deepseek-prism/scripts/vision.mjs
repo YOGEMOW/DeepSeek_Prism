@@ -322,6 +322,40 @@ function normalizeFenceDuplicates(text) {
 
 // ---------- 图片读取 ----------
 
+/** 按魔数嗅探无扩展名文件的图片 MIME（PNG/JPEG/GIF/BMP/WebP/AVIF/TIFF/SVG）。 */
+export function sniffImageMime(bytes) {
+  const b = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes || []);
+  if (b.length < 12) return undefined;
+  if (
+    b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47 &&
+    b[4] === 0x0d && b[5] === 0x0a && b[6] === 0x1a && b[7] === 0x0a
+  ) {
+    return "image/png";
+  }
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x38) return "image/gif";
+  if (b[0] === 0x42 && b[1] === 0x4d) return "image/bmp";
+  if (
+    b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 &&
+    b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+  if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) {
+    const brand = b.subarray(8, 12).toString("ascii");
+    if (brand === "avif" || brand === "avis") return "image/avif";
+  }
+  if (
+    (b[0] === 0x49 && b[1] === 0x49 && b[2] === 0x2a && b[3] === 0x00) ||
+    (b[0] === 0x4d && b[1] === 0x4d && b[2] === 0x00 && b[3] === 0x2a)
+  ) {
+    return "image/tiff";
+  }
+  const head = b.subarray(0, 256).toString("utf8").replace(/^\uFEFF/, "").trimStart();
+  if (head.startsWith("<svg") || head.startsWith("<?xml")) return "image/svg+xml";
+  return undefined;
+}
+
 export async function readImageSource(source, isUrl = false) {
   if (isUrl || /^https?:\/\//i.test(String(source))) {
     const response = await fetch(source);
@@ -343,7 +377,7 @@ export async function readImageSource(source, isUrl = false) {
     );
   }
   const ext = path.extname(abs).slice(1).toLowerCase();
-  const mime = MIME[ext] || "image/jpeg";
+  const mime = MIME[ext] || sniffImageMime(bytes) || "image/jpeg";
   return { bytes, dataUrl: `data:${mime};base64,${bytes.toString("base64")}` };
 }
 

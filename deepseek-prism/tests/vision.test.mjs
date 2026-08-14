@@ -27,6 +27,7 @@ import {
   resolveProviderOrder,
   see,
   shouldUseDetail,
+  sniffImageMime,
   toVep,
   vepFieldBudget,
 } from "../scripts/vision.mjs";
@@ -276,6 +277,24 @@ test("vepFieldBudget 随 maxChars 缩放", () => {
   assert.equal(b520.text, Math.floor(520 * 0.35));
   assert.equal(vepFieldBudget(100).answer, 45);
   assert.equal(vepFieldBudget(100).text, 35);
+});
+
+test("sniffImageMime 按魔数识别无扩展名图片", () => {
+  assert.equal(
+    sniffImageMime(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x00])),
+    "image/png"
+  );
+  assert.equal(sniffImageMime(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01])), "image/jpeg");
+  assert.equal(sniffImageMime(Buffer.from("GIF89a" + "\x00".repeat(6))), "image/gif");
+  assert.equal(sniffImageMime(Buffer.from("BM\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")), "image/bmp");
+  assert.equal(sniffImageMime(Buffer.from("RIFF\x00\x00\x00\x00WEBPVP8L")), "image/webp");
+  assert.equal(sniffImageMime(Buffer.from("\x00\x00\x00\x1cftypavif\x00\x00\x00\x00")), "image/avif");
+  assert.equal(sniffImageMime(Buffer.from("II*\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00")), "image/tiff");
+  assert.equal(
+    sniffImageMime(Buffer.from('<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"/>')),
+    "image/svg+xml"
+  );
+  assert.equal(sniffImageMime(Buffer.from("not an image at all")), undefined);
 });
 
 test("parseImageInfo 解析常见图片尺寸", () => {

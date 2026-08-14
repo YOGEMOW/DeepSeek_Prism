@@ -39,9 +39,11 @@
 
 - 发布 v0.3.0（2026-08-14）：DSH 双平台适配；42 项测试与 quick_validate 通过；SiliconFlow 真实冒烟通过；GitHub Release `v0.3.0` 创建并推送 tag。
 
+- 识图链路修复（2026-08-14，随 v0.3.1 发布）：定位 DSH 纯文本模型无法识图的根因——DSH 宿主在图片上传时直接拒绝纯文本模型（`MODEL_DOES_NOT_SUPPORT_IMAGES`），图片从未进入会话；已在 DSH 宿主（deepseek-harness）实现图片附件降级：纯文本模型收到图片时改为注入 `[图片附件 …已保存到 <路径>]` 文本块（路径为附件内容寻址对象）；`vision.mjs` 新增无扩展名魔数嗅探（PNG/JPEG/GIF/BMP/WebP/AVIF/TIFF/SVG）；43 项测试通过；DSH 宿主 api-proxy 375 项测试通过；发布 v0.3.1。
+
 ## 进行中
 
-- 无（v0.3.0 已发布）。
+- 无（v0.3.1 已发布）。
 
 ## 待处理
 
