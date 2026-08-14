@@ -24,9 +24,9 @@ const DEGRADE_OPTIONS = ['pointer', 'vep'];
 
 const zh = {
   cardTitle: 'DeepSeek Prism（识图）',
-  cardDescription: '视觉 API 密钥与模型选择；密钥保存后不回显明文。',
+  cardDescription: '视觉 API 密钥与模型选择；纯文本模型图片降级。密钥保存后不回显明文。',
   apiKey: '视觉 API 密钥',
-  apiKeyHint: '写入凭据库，保存后仅显示「已配置」，明文不随任何响应返回。',
+  apiKeyHint: '必填。写入凭据库，保存后仅显示「已配置」，明文不随任何响应返回。',
   apiKeySet: '已配置',
   apiKeyUnset: '未配置',
   apiKeyEnv: '密钥环境变量名（凭据引用）',
@@ -38,13 +38,17 @@ const zh = {
   region: '区域',
   regionHint: 'cn / global。',
   degradeMode: '图片降级模式',
-  degradeModeHint: 'pointer = 文本指针（零补丁）；vep = VEP 转换（需最小补丁包，原图保留 + 用量显示）。',
+  degradeModeHint: '文本指针 = 零补丁默认，模型按技能脚本分析附件；VEP 转换 = 需 harness 最小补丁（见 harness-patch），发图直转证据并保留原图与用量显示；未打补丁时请勿切换。',
   degradePointer: '文本指针（零补丁）',
   degradeVep: 'VEP 转换（需补丁）',
   showUsage: '显示识别消耗 token',
-  showUsageHint: '在识别结果后附加本次消耗的 token 数。',
+  showUsageHint: '在识别结果后附加本次消耗的 token 数（仅 VEP 模式）。',
   showBalance: '显示余额与消耗额',
-  showBalanceHint: '识别时查询账户余额并估算本次消耗金额（SiliconFlow）。',
+  showBalanceHint: '识别时查询账户余额并估算本次消耗金额（仅 VEP 模式；余额需 SiliconFlow 接口支持）。',
+  expand: '展开',
+  collapse: '收起',
+  unsaved: '有未保存的修改',
+  readOnly: '当前设置文档只读，无法保存。',
   overridden: '已覆盖',
   reset: '重置',
   save: '保存',
@@ -55,9 +59,9 @@ const zh = {
 };
 const en = {
   cardTitle: 'DeepSeek Prism (vision)',
-  cardDescription: 'Vision API key and model selection; the key is never echoed back.',
+  cardDescription: 'Vision API key, model selection, and image degradation for text-only models; the key is never echoed back.',
   apiKey: 'Vision API key',
-  apiKeyHint: 'Written to the credential store; after saving only a "configured" badge is shown.',
+  apiKeyHint: 'Required. Written to the credential store; after saving only a "configured" badge is shown.',
   apiKeySet: 'Configured',
   apiKeyUnset: 'Not configured',
   apiKeyEnv: 'Key environment variable (credential ref)',
@@ -69,13 +73,17 @@ const en = {
   region: 'Region',
   regionHint: 'cn / global.',
   degradeMode: 'Image degradation mode',
-  degradeModeHint: 'pointer = text pointer (zero patch); vep = VEP conversion (requires the minimal patch; keeps originals and usage).',
+  degradeModeHint: 'Text pointer = zero-patch default, the model runs the skill script on the attachment; VEP conversion = requires the harness minimal patch (see harness-patch), converts at admission and keeps the original image and usage display; keep pointer when unpatchd.',
   degradePointer: 'Text pointer (zero patch)',
   degradeVep: 'VEP conversion (patched)',
   showUsage: 'Show recognition token usage',
-  showUsageHint: 'Append the token count spent on the recognition.',
+  showUsageHint: 'Append the token count spent on the recognition (VEP mode only).',
   showBalance: 'Show balance and cost',
-  showBalanceHint: 'Query the account balance and estimate the cost (SiliconFlow).',
+  showBalanceHint: 'Query the account balance and estimate the cost (VEP mode only; balance needs the SiliconFlow endpoint).',
+  expand: 'Expand',
+  collapse: 'Collapse',
+  unsaved: 'Unsaved changes',
+  readOnly: 'The settings document is read-only; saving is disabled.',
   overridden: 'Overridden',
   reset: 'Reset',
   save: 'Save',
@@ -336,54 +344,135 @@ class PrismCardController {
   }
 }
 
-/* ---------- 卡片渲染（React.createElement，无 JSX） ---------- */
+/* ---------- 卡片渲染（PluginCard 风格，--dsw 主题 token；React.createElement，无 JSX） ---------- */
 
-const cardStyle = { border: '1px solid #e2e4e8', borderRadius: 8, padding: 14, margin: '10px 0' };
-const rowStyle = { display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 10, flexWrap: 'wrap' };
-const labelStyle = { width: 190, fontSize: 13, color: '#333' };
-const inputStyle = { padding: '5px 8px', border: '1px solid #c9ccd1', borderRadius: 4, fontSize: 13, minWidth: 240 };
-const hintStyle = { fontSize: 12, color: '#888', marginTop: 2, flexBasis: '100%' };
-const badgeStyle = { fontSize: 11, padding: '1px 7px', borderRadius: 9, background: '#d9f2e0', color: '#1a7f37' };
-const badgeMutedStyle = { fontSize: 11, padding: '1px 7px', borderRadius: 9, background: '#eee', color: '#777' };
-const buttonStyle = { padding: '5px 14px', borderRadius: 5, border: '1px solid #c9ccd1', background: '#fff', cursor: 'pointer', fontSize: 13 };
-const primaryButtonStyle = { ...buttonStyle, background: '#1f6feb', borderColor: '#1f6feb', color: '#fff' };
-const disabledStyle = { opacity: 0.5, cursor: 'not-allowed' };
+const cardBase = {
+  listStyle: 'none',
+  border: '1px solid var(--dsw-alias-border-l2)',
+  borderRadius: 12,
+  background: 'var(--dsw-alias-bg-layer-3)',
+  transition: 'border-color .16s, background .16s',
+};
+const cardOpen = {
+  ...cardBase,
+  background: 'var(--dsw-alias-bg-layer-2)',
+  borderColor: 'var(--dsw-alias-label-dimmed)',
+};
+const headerStyle = {
+  width: '100%', appearance: 'none', border: 0, background: 'none', font: 'inherit', color: 'inherit',
+  textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12,
+  padding: '14px 16px', borderRadius: 12,
+};
+const headTextStyle = { flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 };
+const nameStyle = { fontSize: 15, fontWeight: 600, lineHeight: 1.4, color: 'var(--dsw-alias-label-primary)' };
+const descriptionStyle = { fontSize: 13, lineHeight: 1.5, color: 'var(--dsw-alias-label-tertiary)' };
+const pendingStyle = {
+  flex: 'none', borderRadius: 999, padding: '1px 8px', fontSize: 11, lineHeight: '17px',
+  fontWeight: 500, whiteSpace: 'nowrap', background: 'var(--dsw-alias-bg-module-platform)',
+  color: 'var(--dsw-alias-label-secondary)',
+};
+const chevronStyle = {
+  flex: 'none', width: 8, height: 8, borderRight: '1.5px solid var(--dsw-alias-label-tertiary)',
+  borderBottom: '1.5px solid var(--dsw-alias-label-tertiary)', transform: 'rotate(45deg)',
+  transition: 'transform .16s',
+};
+const chevronOpenStyle = { ...chevronStyle, transform: 'rotate(-135deg)' };
+const bodyStyle = {
+  borderTop: '1px solid var(--dsw-alias-border-l2)', margin: '0 16px', paddingBottom: 8,
+};
+const readOnlyStyle = { margin: '12px 0 0', fontSize: 12, lineHeight: 1.5, color: 'var(--dsw-alias-label-tertiary)' };
+const fieldStyle = { display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 0' };
+const fieldFirstStyle = { ...fieldStyle, paddingTop: 12 };
+const fieldSepStyle = { borderTop: '1px solid var(--dsw-alias-border-l2)' };
+const fieldHeadStyle = { display: 'flex', alignItems: 'center', gap: 8 };
+const labelStyle = { flex: 1, minWidth: 0, fontSize: 13, fontWeight: 500, lineHeight: 1.5, color: 'var(--dsw-alias-label-primary)' };
+const badgesStyle = { display: 'inline-flex', alignItems: 'center', gap: 8 };
+const badgeStyle = {
+  borderRadius: 999, padding: '1px 8px', fontSize: 11, lineHeight: '17px', whiteSpace: 'nowrap',
+  fontWeight: 500, background: 'var(--dsw-alias-bg-module-platform)', color: 'var(--dsw-alias-label-secondary)',
+};
+const badgeMutedStyle = {
+  borderRadius: 999, padding: '1px 8px', fontSize: 11, lineHeight: '17px', whiteSpace: 'nowrap',
+  color: 'var(--dsw-alias-label-tertiary)',
+};
+const resetStyle = {
+  border: 'none', background: 'none', padding: 0, font: 'inherit', fontSize: 12, lineHeight: 1.5,
+  color: 'var(--dsw-alias-label-secondary)', cursor: 'pointer',
+};
+const inputStyle = {
+  height: 34, padding: '0 12px', border: '1px solid var(--dsw-alias-border-l2)', borderRadius: 8,
+  background: 'var(--dsw-alias-bg-layer-3)', font: 'inherit', fontSize: 13, lineHeight: 1.5,
+  color: 'var(--dsw-alias-label-primary)',
+};
+const hintStyle = { margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--dsw-alias-label-tertiary)' };
+const footerStyle = {
+  display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8,
+  padding: '12px 0 4px', borderTop: '1px solid var(--dsw-alias-border-l2)',
+};
+const failedStyle = { flex: 1, minWidth: 0, margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--dsw-alias-label-error)' };
+const buttonBase = {
+  appearance: 'none', border: '1px solid transparent', borderRadius: 8, padding: '5px 14px',
+  font: 'inherit', fontSize: 13, lineHeight: 1.5, cursor: 'pointer',
+};
+const discardStyle = { ...buttonBase, borderColor: 'var(--dsw-alias-border-l2)', background: 'none', color: 'var(--dsw-alias-label-secondary)' };
+const saveStyle = { ...buttonBase, background: 'var(--dsw-alias-label-primary)', color: 'var(--dsw-alias-bg-layer-3)' };
+const disabledStyle = { opacity: 0.4, cursor: 'default' };
 
-function TextField({ id, label, hint, state, disabled, onEdit }) {
-  return React.createElement('div', { style: rowStyle },
-    React.createElement('label', { htmlFor: id, style: labelStyle }, label),
-    React.createElement('input', {
-      id,
-      style: state.invalid ? { ...inputStyle, borderColor: '#d1242f' } : inputStyle,
-      type: 'text',
-      value: state.text,
-      disabled,
-      placeholder: '',
-      onChange: (event) => { onEdit(event.target.value); },
-    }),
-    React.createElement('span', { style: hintStyle }, hint),
+/** 字段行：label（+ 覆盖徽章/重置）→ 控件 → hint；非首个字段带分隔线。 */
+function FieldRow({ id, label, hint, overridden, overriddenLabel, resetLabel, disabled, onReset, control, first }) {
+  return React.createElement('div', {
+    style: first ? fieldFirstStyle : { ...fieldStyle, ...fieldSepStyle },
+  },
+    React.createElement('div', { style: fieldHeadStyle },
+      React.createElement('label', { htmlFor: id, style: labelStyle }, label),
+      overridden
+        ? React.createElement('span', { style: badgesStyle },
+            React.createElement('span', { style: badgeStyle }, overriddenLabel),
+            React.createElement('button', { type: 'button', style: resetStyle, disabled, onClick: onReset }, resetLabel))
+        : null,
+    ),
+    control,
+    React.createElement('p', { style: hintStyle }, hint),
   );
 }
 
-function SelectField({ id, label, hint, state, options, disabled, onEdit, labelOf }) {
+function TextField({ id, label, hint, state, overridden, overriddenLabel, resetLabel, disabled, onEdit, onReset, first }) {
+  return FieldRow({
+    id, label, hint, overridden, overriddenLabel, resetLabel, disabled, onReset, first,
+    control: React.createElement('input', {
+      id,
+      style: state.invalid ? { ...inputStyle, borderColor: 'var(--dsw-alias-label-error)' } : inputStyle,
+      type: 'text',
+      value: state.text,
+      disabled,
+      onChange: (event) => { onEdit(event.target.value); },
+    }),
+  });
+}
+
+function SelectField({ id, label, hint, state, overridden, overriddenLabel, resetLabel, options, disabled, onEdit, onReset, labelOf, first }) {
   const labelFor = labelOf ?? ((option) => (option === '' ? '(auto)' : option));
-  return React.createElement('div', { style: rowStyle },
-    React.createElement('label', { htmlFor: id, style: labelStyle }, label),
-    React.createElement('select', {
+  return FieldRow({
+    id, label, hint, overridden, overriddenLabel, resetLabel, disabled, onReset, first,
+    control: React.createElement('select', {
       id,
       style: inputStyle,
       value: state.text,
       disabled,
       onChange: (event) => { onEdit(event.target.value); },
     }, options.map((option) => React.createElement('option', { key: option, value: option }, labelFor(option)))),
-    React.createElement('span', { style: hintStyle }, hint),
-  );
+  });
 }
 
-function SecretField({ id, label, hint, state, configured, stateLabel, disabled, onEdit }) {
-  return React.createElement('div', { style: rowStyle },
-    React.createElement('label', { htmlFor: id, style: labelStyle }, label),
-    React.createElement('span', { style: configured ? badgeStyle : badgeMutedStyle }, stateLabel),
+function SecretField({ id, label, hint, state, configured, stateLabel, disabled, onEdit, first }) {
+  return React.createElement('div', {
+    style: first ? fieldFirstStyle : { ...fieldStyle, ...fieldSepStyle },
+  },
+    React.createElement('div', { style: fieldHeadStyle },
+      React.createElement('label', { htmlFor: id, style: labelStyle }, label),
+      React.createElement('span', { style: badgesStyle },
+        React.createElement('span', { style: configured ? badgeStyle : badgeMutedStyle }, stateLabel)),
+    ),
     React.createElement('input', {
       id,
       style: inputStyle,
@@ -394,21 +483,25 @@ function SecretField({ id, label, hint, state, configured, stateLabel, disabled,
       placeholder: '••••••••••••••••',
       onChange: (event) => { onEdit(event.target.value); },
     }),
-    React.createElement('span', { style: hintStyle }, hint),
+    React.createElement('p', { style: hintStyle }, hint),
   );
 }
 
-function CheckboxField({ id, label, hint, checked, disabled, onToggle }) {
-  return React.createElement('div', { style: rowStyle },
-    React.createElement('label', { htmlFor: id, style: labelStyle }, label),
-    React.createElement('input', {
-      id,
-      type: 'checkbox',
-      checked,
-      disabled,
-      onChange: () => { onToggle(); },
-    }),
-    React.createElement('span', { style: hintStyle }, hint),
+function CheckboxField({ id, label, hint, checked, disabled, onToggle, first }) {
+  return React.createElement('div', {
+    style: first ? fieldFirstStyle : { ...fieldStyle, ...fieldSepStyle },
+  },
+    React.createElement('div', { style: fieldHeadStyle },
+      React.createElement('label', { htmlFor: id, style: labelStyle }, label),
+      React.createElement('input', {
+        id,
+        type: 'checkbox',
+        checked,
+        disabled,
+        onChange: () => { onToggle(); },
+      }),
+    ),
+    React.createElement('p', { style: hintStyle }, hint),
   );
 }
 
@@ -416,96 +509,137 @@ function PrismCard(props) {
   const state = props.usePrismCard((snapshot) => snapshot);
   const t = props.t;
   const disabled = !state.writable;
-  return React.createElement('div', { style: cardStyle },
-    React.createElement('div', { style: { fontWeight: 600, fontSize: 14 } }, t('cardTitle')),
-    React.createElement('div', { style: { fontSize: 12, color: '#666', marginTop: 2 } }, t('cardDescription')),
-    SecretField({
-      id: 'prism-vision-api-key',
-      label: t('apiKey'),
-      hint: t('apiKeyHint'),
-      state: state.apiKey,
-      configured: state.apiKeyConfigured,
-      stateLabel: state.apiKeyConfigured ? t('apiKeySet') : t('apiKeyUnset'),
-      disabled: !state.apiKeyWritable,
-      onEdit: (text) => { props.edit('apiKey', text); },
-    }),
-    SelectField({
-      id: 'prism-vision-provider',
-      label: t('provider'),
-      hint: t('providerHint'),
-      state: state.provider,
-      options: state.providerOptions,
-      disabled,
-      onEdit: (text) => { props.edit('provider', text); },
-    }),
-    TextField({
-      id: 'prism-vision-model',
-      label: t('model'),
-      hint: t('modelHint'),
-      state: state.model,
-      disabled,
-      onEdit: (text) => { props.edit('model', text); },
-    }),
-    SelectField({
-      id: 'prism-vision-region',
-      label: t('region'),
-      hint: t('regionHint'),
-      state: state.region,
-      options: state.regionOptions,
-      disabled,
-      onEdit: (text) => { props.edit('region', text); },
-    }),
-    TextField({
-      id: 'prism-vision-api-key-env',
-      label: t('apiKeyEnv'),
-      hint: t('apiKeyEnvHint'),
-      state: state.apiKeyEnv,
-      disabled,
-      onEdit: (text) => { props.edit('apiKeyEnv', text); },
-    }),
-    SelectField({
-      id: 'prism-degrade-mode',
-      label: t('degradeMode'),
-      hint: t('degradeModeHint'),
-      state: state.degradeMode,
-      options: state.degradeModeOptions,
-      disabled,
-      onEdit: (text) => { props.edit('degradeMode', text); },
-      labelOf: (option) => (option === 'pointer' ? t('degradePointer') : option === 'vep' ? t('degradeVep') : option),
-    }),
-    CheckboxField({
-      id: 'prism-show-usage',
-      label: t('showUsage'),
-      hint: t('showUsageHint'),
-      checked: state.showUsage.text === 'true',
-      disabled,
-      onToggle: () => { props.edit('showUsage', state.showUsage.text === 'true' ? 'false' : 'true'); },
-    }),
-    CheckboxField({
-      id: 'prism-show-balance',
-      label: t('showBalance'),
-      hint: t('showBalanceHint'),
-      checked: state.showBalance.text === 'true',
-      disabled,
-      onToggle: () => { props.edit('showBalance', state.showBalance.text === 'true' ? 'false' : 'true'); },
-    }),
-    React.createElement('div', { style: { ...rowStyle, marginTop: 14 } },
-      React.createElement('button', {
-        type: 'button',
-        style: primaryButtonStyle,
-        disabled: disabled || !state.dirty || state.invalid || state.saving,
-        onClick: props.save,
-      }, state.saving ? t('saving') : t('save')),
-      React.createElement('button', {
-        type: 'button',
-        style: buttonStyle,
-        disabled: disabled || (!state.dirty && !state.failed),
-        onClick: props.discard,
-      }, t('discard')),
-      state.failed
-        ? React.createElement('span', { style: { color: '#d1242f', fontSize: 12 } }, t('failed'))
-        : null,
-    ),
+  const [open, setOpen] = React.useState(false);
+  if (!state.available) return null;
+  const title = t('cardTitle');
+  return React.createElement('li', { style: open ? cardOpen : cardBase },
+    React.createElement('button', {
+      type: 'button',
+      style: headerStyle,
+      'aria-expanded': open,
+      'aria-label': `${t(open ? 'collapse' : 'expand')}: ${title}`,
+      onClick: () => { setOpen(!open); },
+    },
+      React.createElement('span', { style: headTextStyle },
+        React.createElement('span', { style: nameStyle }, title),
+        React.createElement('span', { style: descriptionStyle }, t('cardDescription'))),
+      state.dirty ? React.createElement('span', { style: pendingStyle }, t('unsaved')) : null,
+      React.createElement('span', { style: open ? chevronOpenStyle : chevronStyle, 'aria-hidden': true })),
+    open
+      ? React.createElement('div', { style: bodyStyle },
+          !state.writable
+            ? React.createElement('p', { style: readOnlyStyle, role: 'status' }, t('readOnly'))
+            : null,
+          SecretField({
+            id: 'prism-vision-api-key',
+            label: t('apiKey'),
+            hint: t('apiKeyHint'),
+            state: state.apiKey,
+            configured: state.apiKeyConfigured,
+            stateLabel: state.apiKeyConfigured ? t('apiKeySet') : t('apiKeyUnset'),
+            disabled: !state.apiKeyWritable,
+            onEdit: (text) => { props.edit('apiKey', text); },
+            first: true,
+          }),
+          SelectField({
+            id: 'prism-vision-provider',
+            label: t('provider'),
+            hint: t('providerHint'),
+            state: state.provider,
+            overridden: state.provider.overridden,
+            overriddenLabel: t('overridden'),
+            resetLabel: t('reset'),
+            options: state.providerOptions,
+            disabled,
+            onEdit: (text) => { props.edit('provider', text); },
+            onReset: () => { props.resetField('provider'); },
+          }),
+          TextField({
+            id: 'prism-vision-model',
+            label: t('model'),
+            hint: t('modelHint'),
+            state: state.model,
+            overridden: state.model.overridden,
+            overriddenLabel: t('overridden'),
+            resetLabel: t('reset'),
+            disabled,
+            onEdit: (text) => { props.edit('model', text); },
+            onReset: () => { props.resetField('model'); },
+          }),
+          SelectField({
+            id: 'prism-vision-region',
+            label: t('region'),
+            hint: t('regionHint'),
+            state: state.region,
+            overridden: state.region.overridden,
+            overriddenLabel: t('overridden'),
+            resetLabel: t('reset'),
+            options: state.regionOptions,
+            disabled,
+            onEdit: (text) => { props.edit('region', text); },
+            onReset: () => { props.resetField('region'); },
+          }),
+          TextField({
+            id: 'prism-vision-api-key-env',
+            label: t('apiKeyEnv'),
+            hint: t('apiKeyEnvHint'),
+            state: state.apiKeyEnv,
+            overridden: state.apiKeyEnv.overridden,
+            overriddenLabel: t('overridden'),
+            resetLabel: t('reset'),
+            disabled,
+            onEdit: (text) => { props.edit('apiKeyEnv', text); },
+            onReset: () => { props.resetField('apiKeyEnv'); },
+          }),
+          SelectField({
+            id: 'prism-degrade-mode',
+            label: t('degradeMode'),
+            hint: t('degradeModeHint'),
+            state: state.degradeMode,
+            overridden: state.degradeMode.overridden,
+            overriddenLabel: t('overridden'),
+            resetLabel: t('reset'),
+            options: state.degradeModeOptions,
+            disabled,
+            onEdit: (text) => { props.edit('degradeMode', text); },
+            onReset: () => { props.resetField('degradeMode'); },
+            labelOf: (option) => (option === 'pointer' ? t('degradePointer') : option === 'vep' ? t('degradeVep') : option),
+          }),
+          CheckboxField({
+            id: 'prism-show-usage',
+            label: t('showUsage'),
+            hint: t('showUsageHint'),
+            checked: state.showUsage.text === 'true',
+            disabled,
+            onToggle: () => { props.edit('showUsage', state.showUsage.text === 'true' ? 'false' : 'true'); },
+          }),
+          CheckboxField({
+            id: 'prism-show-balance',
+            label: t('showBalance'),
+            hint: t('showBalanceHint'),
+            checked: state.showBalance.text === 'true',
+            disabled,
+            onToggle: () => { props.edit('showBalance', state.showBalance.text === 'true' ? 'false' : 'true'); },
+          }),
+          React.createElement('div', { style: footerStyle },
+            state.failed
+              ? React.createElement('p', { style: failedStyle, role: 'status' }, t('failed'))
+              : null,
+            React.createElement('button', {
+              type: 'button',
+              style: disabled || (!state.dirty && !state.failed) ? { ...discardStyle, ...disabledStyle } : discardStyle,
+              disabled: disabled || (!state.dirty && !state.failed),
+              onClick: props.discard,
+            }, t('discard')),
+            React.createElement('button', {
+              type: 'button',
+              style: disabled || !state.dirty || state.invalid || state.saving ? { ...saveStyle, ...disabledStyle } : saveStyle,
+              disabled: disabled || !state.dirty || state.invalid || state.saving,
+              onClick: props.save,
+            }, state.saving ? t('saving') : t('save')),
+          ),
+        )
+      : null,
   );
 }
 
