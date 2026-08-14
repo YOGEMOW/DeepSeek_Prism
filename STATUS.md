@@ -43,9 +43,11 @@
 
 - DSH 插件化与双包发布（2026-08-14，随 v0.4.0 发布）：新增 `packages/plugin-dsh`（`@yogemow/deepseek-prism-dsh`，零依赖 Cordis 插件）——启动时把技能素材物化到 `$DSH_HOME/skills/deepseek-prism`（版本戳防重复、保留 `.env`），并包装 `apiProxy.sessions.prompt` 实现纯文本模型图片降级；DSH 宿主 checkout 回退本地补丁（保持与上游一致）。新增 `packages/skill`（`@yogemow/deepseek-prism-skill`，Codex 用，含一键安装 CLI）。发布编排 `scripts/release.mjs`（测试 → 版本同步 → pack → GitHub Packages 发布），prepack 自动物化素材；53 项测试与 quick_validate 通过；双包已发布 GitHub Packages 并作为 GitHub Release v0.4.0 资产。
 
+- 识图链路修复与去重复（2026-08-14，随 v0.4.1 发布）：API 实测定位「重启后无法识图」根因——插件 `isCurrentModelTextOnly` 以裸 `{ sessionId }` 调用 `sessions.models`，真实实现从 `request.payload` 解构导致抛错回退上游（图片上传仍被 `MODEL_DOES_NOT_SUPPORT_IMAGES` 拒绝）；已改为完整请求形状并加回归测试（实测降级成功）。同时按用户要求消除重复：插件改为 `ctx.skills.register` 运行时注册技能（不再物化副本），清理 `~/.dsh/skills/deepseek-prism` 与仓库生成素材副本；插件测试 14 项、全量 57 项通过；发布 v0.4.1。
+
 ## 进行中
 
-- 无（v0.4.0 已发布）。
+- 无（v0.4.1 已发布）。
 
 ## 待处理
 
