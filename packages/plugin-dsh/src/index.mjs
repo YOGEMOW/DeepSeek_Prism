@@ -523,6 +523,13 @@ export async function installPrismSettings(ctx, entryConfig = {}) {
       void applyVisionEnvironment(ctx);
     },
   });
+  // 密钥经 credentials 域保存，不经 settings commit，settings onChange 不会触发；
+  // 监听凭据更新把新密钥即时注入 process.env（vision.mjs 子进程继承），
+  // 保存密钥后无需再保存其他设置字段即可识图。监听器归属本注入上下文，
+  // 随 fiber dispose 自动移除。
+  ctx.on("credentials/updated", () => {
+    void applyVisionEnvironment(ctx);
+  });
   ctx.logger?.info(`deepseek-prism-dsh: settings namespace "${SETTINGS_NAMESPACE}" registered`);
   return currentSource;
 }

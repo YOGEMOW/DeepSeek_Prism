@@ -98,3 +98,48 @@ test("无 apiProxy 的 profile：插件照常挂载（条件注入跳过）", as
   assert.equal(typeof plugin.dispose, "function");
   await plugin.dispose();
 });
+
+test("保存密钥（credentials 域）后即时注入 process.env：credentials/updated 重跑 applyVisionEnvironment", async () => {
+  const ctx = new Context();
+  const envBackup = {};
+  for (const key of ["SILICONFLOW_API_KEY", "VISION_PROVIDER", "VISION_MODEL", "VISION_REGION"]) {
+    envBackup[key] = process.env[key];
+    delete process.env[key];
+  }
+  ctx.provide("skills", { register: () => () => {} });
+  // 完整 settings 服务（installSettingsSection 需要 register），schema 用
+  // schemastery 的 object schema；installPrismSettings 动态导入真实
+  // dsh-settings / schemastery，与宿主装配路径一致。
+  ctx.provide("settings", {
+    get: () => resolvedSection,
+    register: (ns, schema) => {
+      const resolved = schema({});
+      return {
+        get: () => resolved,
+        watch: () => () => {},
+        update: async () => {},
+        replace: async () => {},
+      };
+    },
+  });
+  const resolvedSection = {};
+  const resolvedValues = new Map();
+  ctx.provide("credentials", {
+    resolve: async (ref) => ({ value: resolvedValues.get(ref) }),
+  });
+
+  const plugin = await ctx.plugin(apply, {});
+  await new Promise((resolve) => setTimeout(resolve, 50)); // installPrismSettings 异步链
+
+  assert.equal(process.env.SILICONFLOW_API_KEY, undefined, "未保存密钥时 env 不注入");
+  resolvedValues.set("SILICONFLOW_API_KEY", "sk-saved-via-credentials");
+  ctx.emit("credentials/updated", "SILICONFLOW_API_KEY");
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  assert.equal(process.env.SILICONFLOW_API_KEY, "sk-saved-via-credentials", "凭据更新后 env 立即注入");
+
+  for (const [key, value] of Object.entries(envBackup)) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+  await plugin.dispose();
+});

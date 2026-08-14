@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- **密钥保存后识图仍失败**（DSH 插件）：视觉密钥经 credentials 域保存，不触发 settings commit，`applyVisionEnvironment`（把密钥注入 `process.env` 供 vision.mjs 子进程继承）此前只在 settings 保存时运行——保存密钥后 env 从未注入，识图永远缺密钥。现插件监听 `credentials/updated`，凭据一更新即重跑环境注入（**需重启 harness 生效**；重启前变通：保存密钥后再保存任意设置字段即可触发注入）。
 - **保存配置过慢**（DSH 设置卡片）：保存路径由「逐字段串行 RPC」改为「**一次 `settings.mutate` 批量提交全部字段**」——原来每个暂存字段各发一次 `settings.mutate` RPC，宿主端每次都要文件锁 + 全量写盘 + `document-updated` 广播（广播又触发所有设置 scope 的全量 `describe` 回读），8 个字段 ≈ 8 次串行完整往返；现在合并为单次 RPC（宿主单次排队/写盘/广播），并以 mutate 响应 view 的 `user` 层逐 op 验证落地，失败回读 `scope.load()` 恢复真实状态。`apiKey` 仍单独走 credentials 域（每保存最多 2 次 RPC）。新增 `tests/client-save.test.mjs`（9 项，覆盖批量合并、落地验证、冲突回读、apiKey 分支、无效草稿、reset unset）。
 
 ### Changed

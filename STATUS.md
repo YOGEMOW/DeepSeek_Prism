@@ -51,9 +51,11 @@
 
 - 设置卡片保存提速（2026-08-15）：诊断「保存配置很慢」根因——保存路径逐字段串行 RPC，每个字段一次 `settings.mutate`，宿主端每次都要文件锁 + 全量写盘 + `document-updated` 广播（广播再触发所有设置 scope 的全量 describe 回读），8 个字段 ≈ 8 次串行完整往返；改为一次 `settings.mutate` 批量提交全部字段（单次排队/写盘/广播），以响应 view 的 user 层逐 op 验证落地、失败回读 `scope.load()`；apiKey 仍走 credentials 域（每保存 ≤2 次 RPC）。新增 client 保存路径测试 9 项；插件测试 32 项、仓库全量 66 项通过。
 
+- 识图失败 + 密钥保存排查（2026-08-15）：宿主 RPC 直测确认 settings.mutate / credentials.set / describe 全部正常、`deepseek-prism-dsh` 命名空间已注册（revision 0 证明保存从未落盘成功过；settings.yaml 的 `deepseek-prism` 段是旧 dsh-plugin 路线残留，含明文密钥，主线不使用）；根因是**密钥经 credentials 域保存不触发 settings onChange，`applyVisionEnvironment` 从未把密钥注入 process.env**，vision.mjs 子进程无密钥 → 识图失败。修复：插件监听 `credentials/updated` 事件，凭据更新即重跑环境注入（**需重启 harness 生效**；重启前可先保存密钥、再保存任意设置字段触发注入）；新增 real-composition 用例验证凭据更新 → env 注入。插件测试 33 项、仓库全量 67 项通过。
+
 ## 进行中
 
-- 无（设置卡片 UI 重做 + 保存提速已完成，待用户刷新验证）。
+- 无（设置卡片 UI 重做 + 保存提速 + 识图密钥注入修复已完成；host 端改动需重启 harness 生效，待用户验证）。
 
 ## 待处理
 
