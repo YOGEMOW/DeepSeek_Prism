@@ -105,6 +105,7 @@ export function loadSkillDefinition() {
 /**
  * 把技能注册进 `ctx.skills`（运行时 provider，模型可经 skill 工具加载，
  * 用户也可用 /deepseek-prism 手势直接调用）。失败仅告警，不阻断宿主。
+ * @returns {undefined | (() => void)} 技能注册的 disposer（由注入回调收集，fiber dispose 时执行）。
  */
 export function installSkillRegistration(ctx) {
   try {
@@ -119,10 +120,11 @@ export function installSkillRegistration(ctx) {
       invocation: { modelInvocable: true, userInvocable: true },
       source: "custom",
     });
-    ctx.on("dispose", disposer);
     ctx.logger?.info(`deepseek-prism-dsh: skill "${skill.name}" registered from ${skill.resourceBase.path}`);
+    return disposer;
   } catch (error) {
     ctx.logger?.warn(`deepseek-prism-dsh: skill registration failed: ${error instanceof Error ? error.message : String(error)}`);
+    return undefined;
   }
 }
 
@@ -391,17 +393,20 @@ export async function isCurrentModelTextOnly(apiProxy, llm, sessionId) {
 }
 
 /**
- * 包装 `apiProxy.sessions.prompt`：图片 prompt + 纯文本模型 → 降级为文本指针；
- * 其余情况（无图片、视觉模型、判定失败、降级失败）原样交给上游。
+ * 包装 `apiProxy.sessions.prompt`：图片 prompt + 纯文本模型 → 降级为文本指针
+ * 或 VEP 转换；其余情况原样交给上游。链式安全：保存当前实现引用，dispose
+ * 时仅在自己仍是最外层包装时恢复（他人包装不受影响）。
+ * @returns {undefined | (() => void)} 恢复函数（由注入回调收集）。
  */
 export function installPromptDegradation(ctx) {
   const sessions = ctx.apiProxy.sessions;
-  const originalPrompt = sessions.prompt?.bind(sessions);
-  if (typeof originalPrompt !== "function") return;
+  const originalPrompt = sessions.prompt;
+  if (typeof originalPrompt !== "function") return undefined;
+  const callOriginal = (request) => originalPrompt.call(sessions, request);
   const wrapped = async (request) => {
     const content = request?.payload?.content;
     if (!Array.isArray(content) || !content.some((part) => part?.type === "image")) {
-      return originalPrompt(request);
+      return callOriginal(request);
     }
     let textOnly = false;
     try {
@@ -409,34 +414,34 @@ export function installPromptDegradation(ctx) {
     } catch {
       textOnly = false;
     }
-    if (!textOnly) return originalPrompt(request);
+    if (!textOnly) return callOriginal(request);
     try {
       const section = ctx.get("settings")?.get(SETTINGS_NAMESPACE) ?? {};
       const mode = section.degradeMode === "vep" ? "vep" : "pointer";
       const degraded = mode === "vep"
         ? await degradeVepContent(ctx, content, section)
         : await degradeImageContent(ctx, content);
-      return await originalPrompt({ ...request, payload: { ...request.payload, content: degraded } });
+      return await callOriginal({ ...request, payload: { ...request.payload, content: degraded } });
     } catch {
       // 校验/持久化/识别失败交由上游原逻辑处理（含拒绝路径与错误响应）。
-      return originalPrompt(request);
+      return callOriginal(request);
     }
   };
   sessions.prompt = wrapped;
-  ctx.on("dispose", () => {
+  return () => {
     if (sessions.prompt === wrapped) sessions.prompt = originalPrompt;
-  });
+  };
 }
 
 /** Cordis 插件入口。 */
 export function apply(ctx, config = {}) {
-  // 技能注册：需要 skills 服务；失败仅告警。
+  // 技能注册：需要 skills 服务；失败仅告警。返回的 disposer 随 fiber 清理。
   ctx.inject(["skills"], (skillsCtx) => {
-    installSkillRegistration(skillsCtx);
+    return installSkillRegistration(skillsCtx);
   });
   // 网关相关服务用条件注入：无 apiProxy 的 profile（如 headless）跳过降级。
   ctx.inject(["apiProxy", "attachments", "llm"], (gatewayCtx) => {
-    installPromptDegradation(gatewayCtx);
+    return installPromptDegradation(gatewayCtx);
   });
   // 设置命名空间 + 凭据/环境注入：需要 settings 服务；缺失或包不可解析时降级跳过。
   ctx.inject(["settings"], (settingsCtx) => {
@@ -521,5 +526,3 @@ export async function installPrismSettings(ctx, entryConfig = {}) {
   ctx.logger?.info(`deepseek-prism-dsh: settings namespace "${SETTINGS_NAMESPACE}" registered`);
   return currentSource;
 }
-
-export default apply;
