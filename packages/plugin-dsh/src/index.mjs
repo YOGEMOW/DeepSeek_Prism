@@ -424,9 +424,15 @@ export async function isCurrentModelTextOnly(apiProxy, llm, sessionId) {
  * @returns {(() => void) | undefined} 服务 disposer（随注入 fiber 清理）。
  */
 export function installImageFallback(ctx) {
+  // settings 显式注入：Loader 插件 ctx 的 `ctx.get` 未必能读到未声明注入的
+  // 服务，而 transformImages 需要读取降级模式等设置段。
+  let sectionOf = () => ({});
+  ctx.inject(["settings"], (settingsCtx) => {
+    sectionOf = () => settingsCtx.settings.get(SETTINGS_NAMESPACE) ?? {};
+  });
   const transformImages = async (content) => {
     try {
-      const section = ctx.get("settings")?.get(SETTINGS_NAMESPACE) ?? {};
+      const section = sectionOf();
       const mode = section.degradeMode === "vep" ? "vep" : "pointer";
       if (mode === "vep" && content.some(
         (part) => part?.type === "text" && VEP_EVIDENCE_MARK.test(part.text)
@@ -453,6 +459,12 @@ export function installPromptDegradation(ctx) {
   const sessions = ctx.apiProxy.sessions;
   const originalPrompt = sessions.prompt;
   if (typeof originalPrompt !== "function") return undefined;
+  // settings 显式注入（同 installImageFallback：Loader 插件 ctx 的 ctx.get
+  // 未必能读到未声明注入的服务，而降级模式等设置段是必需的）。
+  let sectionOf = () => ({});
+  ctx.inject(["settings"], (settingsCtx) => {
+    sectionOf = () => settingsCtx.settings.get(SETTINGS_NAMESPACE) ?? {};
+  });
   const callOriginal = (request) => originalPrompt.call(sessions, request);
   const wrapped = async (request) => {
     const content = request?.payload?.content;
@@ -467,7 +479,7 @@ export function installPromptDegradation(ctx) {
     }
     if (!textOnly) return callOriginal(request);
     try {
-      const section = ctx.get("settings")?.get(SETTINGS_NAMESPACE) ?? {};
+      const section = sectionOf();
       const mode = section.degradeMode === "vep" ? "vep" : "pointer";
       const degraded = mode === "vep"
         ? await degradeVepContent(ctx, content, section)
@@ -515,11 +527,13 @@ export function apply(ctx, config = {}) {
 /**
  * 把当前设置段（provider/model/region/apiKeyEnv + 凭据密钥）应用到宿主进程环境，
  * 使模型运行 vision.mjs 的子进程（继承宿主 env）无需任何 .env 文件即可调用视觉 API。
+ * `credentialsOverride` 由注入显式提供（Loader 插件 ctx 的 `ctx.get` 未必能读到
+ * 未声明注入的服务）；缺省时回退 `ctx.get("credentials")`。
  * @returns 应用结果摘要（不含密钥明文）。
  */
-export async function applyVisionEnvironment(ctx) {
+export async function applyVisionEnvironment(ctx, credentialsOverride) {
   const settings = ctx.get("settings");
-  const credentials = ctx.get("credentials");
+  const credentials = credentialsOverride ?? ctx.get("credentials");
   const section = settings?.get(SETTINGS_NAMESPACE) ?? {};
   const apiKeyEnv = typeof section.apiKeyEnv === "string" && section.apiKeyEnv.length > 0
     ? section.apiKeyEnv
@@ -557,6 +571,8 @@ function credentialRefOf(ref) {
 
 /**
  * 注册设置命名空间（需 dsh-settings / schemastery 可解析；动态导入，缺失时抛错由调用方降级）。
+ * credentials 以显式注入获取（Loader 插件 ctx 的 `ctx.get` 未必能读到未声明
+ * 注入的服务），供环境应用与 `credentials/updated` 监听使用。
  */
 export async function installPrismSettings(ctx, entryConfig = {}) {
   const { installSettingsSection, settingsNamespace } = await import("@deepseek-ai/dsh-settings");
@@ -572,20 +588,25 @@ export async function installPrismSettings(ctx, entryConfig = {}) {
     showBalance: z.boolean().default(false),
   });
   let currentSource = () => entryConfig;
+  let credentialsRef;
+  const applyEnvironment = () => {
+    void applyVisionEnvironment(ctx, credentialsRef);
+  };
+  // 显式 credentials 注入：凭据服务可用时持有引用（密钥解析 + 事件监听用）。
+  ctx.inject(["credentials"], (credCtx) => {
+    credentialsRef = credCtx.credentials;
+    applyEnvironment();
+    return ctx.on("credentials/updated", () => {
+      applyEnvironment();
+    });
+  });
   installSettingsSection(ctx, settingsNamespace(SETTINGS_NAMESPACE), schema, entryConfig, {
     setSource: (source) => {
       currentSource = source;
     },
     onChange: () => {
-      void applyVisionEnvironment(ctx);
+      applyEnvironment();
     },
-  });
-  // 密钥经 credentials 域保存，不经 settings commit，settings onChange 不会触发；
-  // 监听凭据更新把新密钥即时注入 process.env（vision.mjs 子进程继承），
-  // 保存密钥后无需再保存其他设置字段即可识图。监听器归属本注入上下文，
-  // 随 fiber dispose 自动移除。
-  ctx.on("credentials/updated", () => {
-    void applyVisionEnvironment(ctx);
   });
   ctx.logger?.info(`deepseek-prism-dsh: settings namespace "${SETTINGS_NAMESPACE}" registered`);
   return currentSource;

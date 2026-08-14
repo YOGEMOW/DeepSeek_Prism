@@ -60,6 +60,12 @@ function fakeGateway({ inputModalities = ["text"], current = { provider: "deepse
     },
     on: () => {},
     get: (name) => (name === "settings" ? { get: () => settings ?? {} } : undefined),
+    inject: (names, callback) => {
+      const sub = Object.create(ctx);
+      if (names.includes("settings")) sub.settings = ctx.get("settings");
+      if (names.includes("credentials")) sub.credentials = ctx.get("credentials");
+      return callback(sub);
+    },
     provide: (name, value) => {
       provided[name] = value;
       return () => { delete provided[name]; };
