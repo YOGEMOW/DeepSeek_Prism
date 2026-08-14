@@ -52,6 +52,11 @@ test("真实 Cordis 装配：注入等待、prompt 包装与 dispose 恢复", as
   assert.equal(skills.length, 1, "技能必须注册到 ctx.skills");
   assert.equal(skills[0].name, "deepseek-prism");
   assert.ok(sessions.prompt !== originalPrompt, "prompt 必须被降级包装");
+  const fallback = ctx.get("imageFallback");
+  assert.ok(
+    fallback !== undefined && typeof fallback.transformImages === "function",
+    "必须提供官方 imageFallback 准入接缝",
+  );
 
   // 图片 prompt + 纯文本模型 → 文本指针降级后交给上游。
   const result = await sessions.prompt({
@@ -68,6 +73,7 @@ test("真实 Cordis 装配：注入等待、prompt 包装与 dispose 恢复", as
   await plugin.dispose();
   assert.equal(skills.length, 0, "dispose 必须移除技能");
   assert.equal(sessions.prompt, originalPrompt, "dispose 必须恢复原始 prompt");
+  assert.equal(ctx.get("imageFallback"), undefined, "dispose 必须移除 imageFallback 服务");
   await plugin.dispose(); // 幂等
 });
 

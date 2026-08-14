@@ -53,9 +53,11 @@
 
 - 识图失败 + 密钥保存排查（2026-08-15）：宿主 RPC 直测确认 settings.mutate / credentials.set / describe 全部正常、`deepseek-prism-dsh` 命名空间已注册（revision 0 证明保存从未落盘成功过；settings.yaml 的 `deepseek-prism` 段是旧 dsh-plugin 路线残留，含明文密钥，主线不使用）；根因是**密钥经 credentials 域保存不触发 settings onChange，`applyVisionEnvironment` 从未把密钥注入 process.env**，vision.mjs 子进程无密钥 → 识图失败。修复：插件监听 `credentials/updated` 事件，凭据更新即重跑环境注入（**需重启 harness 生效**；重启前可先保存密钥、再保存任意设置字段触发注入）；新增 real-composition 用例验证凭据更新 → env 注入。插件测试 33 项、仓库全量 67 项通过。
 
+- 图片准入接缝接入（2026-08-15）：重启后用户仍报「该模型不支持识图」——api-proxy 图片准入（纯文本模型 + 图片）要求 `imageFallback` 服务（harness 官方接缝），缺失即拒绝 `MODEL_DOES_NOT_SUPPORT_IMAGES`，旧实现只包装 `sessions.prompt` 未注册接缝。修复：插件 `ctx.provide("imageFallback")`（准入层直接降级，与包装互为兜底；vep 对已降级内容原样返回防二次转换；失败保留原 content 由序列化器剥离兜底；模态判定失败/缺失保守按纯文本降级）；vep 原图块改携原始 base64（兼容 `durablePromptContent` 持久化）。**需重启 harness 生效**。插件测试 37 项、仓库全量 70 项通过。
+
 ## 进行中
 
-- 无（设置卡片 UI 重做 + 保存提速 + 识图密钥注入修复已完成；host 端改动需重启 harness 生效，待用户验证）。
+- 无（保存提速 + 密钥 env 注入 + 图片准入接缝已完成；host 端改动需重启 harness 生效，待用户验证）。
 
 ## 待处理
 

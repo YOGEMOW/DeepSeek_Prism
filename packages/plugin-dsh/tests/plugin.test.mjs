@@ -10,6 +10,7 @@ import {
   attachmentObjectPath,
   degradeImageContent,
   imagePointerText,
+  installImageFallback,
   installPromptDegradation,
   isCurrentModelTextOnly,
   loadSkillDefinition,
@@ -59,9 +60,15 @@ function fakeGateway({ inputModalities = ["text"], current = { provider: "deepse
     },
     on: () => {},
     get: (name) => (name === "settings" ? { get: () => settings ?? {} } : undefined),
+    provide: (name, value) => {
+      provided[name] = value;
+      return () => { delete provided[name]; };
+    },
   };
+  const provided = {};
   installPromptDegradation(ctx);
-  return { ctx, sessions, calls };
+  installImageFallback(ctx);
+  return { ctx, sessions, calls, provided };
 }
 
 function imagePart(name) {
@@ -115,11 +122,13 @@ test("视觉模型 + 图片：原样透传不降级", async () => {
   assert.equal(calls[0].payload.content[0].type, "image");
 });
 
-test("模型查询失败：原样透传", async () => {
+test("模型查询失败：保守按纯文本降级（文本指针比准入拒绝可用）", async () => {
   const { sessions, calls } = fakeGateway({ modelsError: true });
   await sessions.prompt(promptRequest([imagePart("shot.png")]));
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].payload.content[0].type, "image");
+  const content = calls[0].payload.content;
+  assert.equal(content[0].type, "text", "模态判定失败时降级为文本指针");
+  assert.match(content[0].text, /图片附件 shot\.png/);
 });
 
 test("图片校验/持久化失败：回退上游原逻辑（不降级）", async () => {
@@ -373,8 +382,10 @@ test("vep 模式：图片转为 VEP/2 文本并保留原图附件与用量行", 
     assert.match(vep.text, /【DeepSeek Prism 用量】tokens=15/);
     assert.ok(!/balance=/.test(vep.text), "showBalance 未开启时不附加余额");
     assert.ok(
-      content.some((block) => block.type === "image" && block.attachment?.attachmentId === `sha256:${SHA}`),
-      "原图附件必须保留（消息内展示）"
+      content.some((block) => block.type === "image"
+        && block.data === Buffer.from("x").toString("base64")
+        && block.mediaType === "image/png"),
+      "原图块必须保留原始 base64（durablePromptContent 依赖 data 持久化）"
     );
   } finally {
     globalThis.fetch = originalFetch;
@@ -398,4 +409,63 @@ test("vep 模式：无密钥时回退上游原逻辑", async () => {
     globalThis.fetch = originalFetch;
     if (oldKey !== undefined) process.env.SILICONFLOW_API_KEY = oldKey;
   }
+});
+
+test("imageFallback 服务：注册到 ctx 并把图片降级为文本指针（官方准入接缝）", async () => {
+  const { provided } = fakeGateway();
+  assert.ok(provided.imageFallback, "必须提供 imageFallback 服务");
+  const transformed = await provided.imageFallback.transformImages([imagePart("shot.png"), textPart]);
+  assert.equal(transformed.length, 2);
+  assert.equal(transformed[0].type, "text");
+  assert.match(transformed[0].text, /图片附件 shot\.png/);
+  assert.ok(!transformed.some((block) => block.type === "image"), "接缝降级后不应再有图片块");
+});
+
+test("imageFallback：vep 模式对已降级内容（含证据标记）原样返回，避免二次转换", async () => {
+  const oldKey = process.env.SILICONFLOW_API_KEY;
+  process.env.SILICONFLOW_API_KEY = "sk-test";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error("已降级内容不应再调用视觉 API");
+  };
+  try {
+    const { provided } = fakeGateway({ settings: { degradeMode: "vep" } });
+    const already = [
+      { type: "text", text: "【DeepSeek Prism 识别：a.png】\nVEP/2|src=siliconflow/|m=ocr" },
+      { type: "image", data: "eA==", mediaType: "image/png" },
+    ];
+    const out = await provided.imageFallback.transformImages(already);
+    assert.equal(out, already, "已降级内容原样返回");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (oldKey === undefined) delete process.env.SILICONFLOW_API_KEY;
+    else process.env.SILICONFLOW_API_KEY = oldKey;
+  }
+});
+
+test("imageFallback：降级失败时返回原 content（容错，序列化器剥离兜底）", async () => {
+  const oldKey = process.env.SILICONFLOW_API_KEY;
+  delete process.env.SILICONFLOW_API_KEY;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("should not be called"); };
+  try {
+    const { provided } = fakeGateway({ settings: { degradeMode: "vep" } });
+    const input = [imagePart("a.png")];
+    const out = await provided.imageFallback.transformImages(input);
+    assert.equal(out, input, "vep 无密钥降级失败时保留原 content");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (oldKey !== undefined) process.env.SILICONFLOW_API_KEY = oldKey;
+  }
+});
+
+test("isCurrentModelTextOnly：模态判定失败/信息缺失时保守按纯文本降级", async () => {
+  const { ctx } = fakeGateway({ modelsError: true });
+  assert.equal(await isCurrentModelTextOnly(ctx.apiProxy, ctx.llm, "s1"), true, "RPC 失败保守降级");
+  const unknown = await isCurrentModelTextOnly(
+    ctx.apiProxy,
+    { resolveModelInfo: async () => ({ inputModalities: undefined }) },
+    "s1"
+  );
+  assert.equal(unknown, true, "模态信息缺失按纯文本处理");
 });

@@ -342,7 +342,7 @@ export async function degradeVepContent(ctx, content, section) {
     const usageLine = await buildUsageLine(section, vision, usage);
     const text = `【DeepSeek Prism 对比：${name(saved[0], 1)} vs ${name(saved[1], 2)}】\n${vision.toVep(result, maxChars)}${usageLine}`;
     blocks.push({ type: "text", text });
-    blocks.push(...saved.map((entry) => ({ type: "image", attachment: entry.ref })));
+    blocks.push(...saved.map((entry) => imageBlockOf(entry)));
     return blocks;
   }
 
@@ -374,22 +374,73 @@ export async function degradeVepContent(ctx, content, section) {
   for (const item of recognized) {
     blocks.push({ type: "text", text: `${item.text}${usageLine}` });
   }
-  blocks.push(...saved.map((entry) => ({ type: "image", attachment: entry.ref })));
+  blocks.push(...saved.map((entry) => imageBlockOf(entry)));
   return blocks;
 }
 
 /**
+ * 降级后保留的原图块：携带原始 base64（durablePromptContent 要求 image 块
+ * 带 `data` 才能持久化并生成附件引用；请求侧由补丁的序列化器剥离图片）。
+ */
+function imageBlockOf(entry) {
+  return {
+    type: "image",
+    data: entry.part.data,
+    mediaType: entry.part.mediaType,
+    ...entry.part.name === undefined ? {} : { name: entry.part.name },
+  };
+}
+
+/** VEP 降级文本的头部标记（transformImages 识别已降级内容，避免二次转换）。 */
+const VEP_EVIDENCE_MARK = /【DeepSeek Prism (?:识别|对比)：/;
+
+/**
  * 查询会话当前模型是否为纯文本（无 image 输入模态）。
  * 通过 `sessions.models` RPC（完整请求形状 { payload: { sessionId } }）读取
- * 当前选择，再经 `llm.resolveModelInfo` 判定。
+ * 当前选择，再经 `llm.resolveModelInfo` 判定。模态判定失败（RPC 异常/无
+ * 当前模型）时保守按纯文本处理：降级为文本指针比准入拒绝可用；模态信息
+ * 缺失（undefined）同样视为纯文本。
  */
 export async function isCurrentModelTextOnly(apiProxy, llm, sessionId) {
-  const response = await apiProxy.sessions.models({ payload: { sessionId } });
-  if (response?.result?.ok !== true) return false;
+  let response;
+  try {
+    response = await apiProxy.sessions.models({ payload: { sessionId } });
+  } catch {
+    return true;
+  }
+  if (response?.result?.ok !== true) return true;
   const current = response.result.value?.current;
-  if (current === undefined) return false;
+  if (current === undefined) return true;
   const info = await llm.resolveModelInfo(current.provider, current.model);
-  return info.inputModalities !== undefined && !info.inputModalities.includes("image");
+  return info.inputModalities === undefined || !info.inputModalities.includes("image");
+}
+
+/**
+ * 注册 harness 官方的 `imageFallback` 服务（api-proxy 图片准入接缝）：
+ * 纯文本模型收到图片 prompt 时，准入层调用 `transformImages` 把图片块
+ * 降级为文本指针或 VEP 文本。与 `installPromptDegradation` 的包装互为
+ * 兜底；vep 模式对已降级内容（含证据标记）原样返回，避免二次转换。
+ * 降级失败时返回原 content（由补丁的序列化器在请求侧剥离图片兜底）。
+ * @returns {(() => void) | undefined} 服务 disposer（随注入 fiber 清理）。
+ */
+export function installImageFallback(ctx) {
+  const transformImages = async (content) => {
+    try {
+      const section = ctx.get("settings")?.get(SETTINGS_NAMESPACE) ?? {};
+      const mode = section.degradeMode === "vep" ? "vep" : "pointer";
+      if (mode === "vep" && content.some(
+        (part) => part?.type === "text" && VEP_EVIDENCE_MARK.test(part.text)
+      )) {
+        return content;
+      }
+      return mode === "vep"
+        ? await degradeVepContent(ctx, content, section)
+        : await degradeImageContent(ctx, content);
+    } catch {
+      return content;
+    }
+  };
+  return ctx.provide("imageFallback", { transformImages });
 }
 
 /**
@@ -441,7 +492,13 @@ export function apply(ctx, config = {}) {
   });
   // 网关相关服务用条件注入：无 apiProxy 的 profile（如 headless）跳过降级。
   ctx.inject(["apiProxy", "attachments", "llm"], (gatewayCtx) => {
-    return installPromptDegradation(gatewayCtx);
+    const disposers = [
+      installPromptDegradation(gatewayCtx),
+      installImageFallback(gatewayCtx),
+    ];
+    return () => {
+      for (const dispose of disposers) dispose?.();
+    };
   });
   // 设置命名空间 + 凭据/环境注入：需要 settings 服务；缺失或包不可解析时降级跳过。
   ctx.inject(["settings"], (settingsCtx) => {
