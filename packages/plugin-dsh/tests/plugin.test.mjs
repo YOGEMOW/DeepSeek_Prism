@@ -23,7 +23,7 @@ const SHA = "a".repeat(64);
  * 构造与真实 api-proxy 一致的会话桩：`models` 同样从 `request.payload` 解构，
  * 传错形状（如裸 { sessionId }）会像真实实现一样抛 TypeError。
  */
-function fakeGateway({ inputModalities = ["text"], current = { provider: "deepseek", model: "deepseek-v4-flash" }, modelsError = false } = {}) {
+function fakeGateway({ inputModalities = ["text"], current = { provider: "deepseek", model: "deepseek-v4-flash" }, modelsError = false, settings } = {}) {
   const calls = [];
   const original = async (request) => {
     calls.push(request);
@@ -58,6 +58,7 @@ function fakeGateway({ inputModalities = ["text"], current = { provider: "deepse
       }),
     },
     on: () => {},
+    get: (name) => (name === "settings" ? { get: () => settings ?? {} } : undefined),
   };
   installPromptDegradation(ctx);
   return { ctx, sessions, calls };
@@ -343,4 +344,58 @@ test("applyVisionEnvironment：空 provider/model/region 不覆盖已有 env", a
     assert.equal(process.env.VISION_PROVIDER, "pre-set");
     assert.equal(process.env.VISION_MODEL, undefined);
   });
+});
+
+test("vep 模式：图片转为 VEP/2 文本并保留原图附件与用量行", async () => {
+  const oldKey = process.env.SILICONFLOW_API_KEY;
+  process.env.SILICONFLOW_API_KEY = "sk-test";
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    text: async () => JSON.stringify({
+      choices: [{
+        message: {
+          content: '<|begin_of_box|>{"a":"ok","t":"文字内容"}<|end_of_box|>',
+        },
+      }],
+      usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+    }),
+  });
+  try {
+    const { sessions, calls } = fakeGateway({ settings: { degradeMode: "vep" } });
+    const result = await sessions.prompt(promptRequest([imagePart("shot.png"), textPart]));
+    assert.equal(result.result.ok, true);
+    const content = calls[0].payload.content;
+    const vep = content.find((block) => block.type === "text" && /VEP\/2/.test(block.text));
+    assert.ok(vep, "必须生成 VEP/2 文本块");
+    assert.match(vep.text, /【DeepSeek Prism 识别：shot\.png】/);
+    assert.match(vep.text, /VEP\/2\|src=siliconflow\//);
+    assert.match(vep.text, /【DeepSeek Prism 用量】tokens=15/);
+    assert.ok(!/balance=/.test(vep.text), "showBalance 未开启时不附加余额");
+    assert.ok(
+      content.some((block) => block.type === "image" && block.attachment?.attachmentId === `sha256:${SHA}`),
+      "原图附件必须保留（消息内展示）"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (oldKey === undefined) delete process.env.SILICONFLOW_API_KEY;
+    else process.env.SILICONFLOW_API_KEY = oldKey;
+  }
+});
+
+test("vep 模式：无密钥时回退上游原逻辑", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("should not be called"); };
+  const oldKey = process.env.SILICONFLOW_API_KEY;
+  delete process.env.SILICONFLOW_API_KEY;
+  try {
+    const { sessions, calls } = fakeGateway({ settings: { degradeMode: "vep" } });
+    const result = await sessions.prompt(promptRequest([imagePart("a.png")]));
+    assert.equal(result.result.ok, true, "无密钥降级失败应回退上游原逻辑");
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].payload.content[0].type, "image", "回退上游时图片块原样保留");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (oldKey !== undefined) process.env.SILICONFLOW_API_KEY = oldKey;
+  }
 });

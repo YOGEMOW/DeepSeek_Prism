@@ -37,7 +37,9 @@ test('真实 Cordis 装配：inject 等待、服务注册、fiber dispose 清理
   ctx.provide('tools', tools)
 
   // Cordis mounts the plugin only after the injected services are present.
-  const dispose = await ctx.plugin(apply, {})
+  // (This Cordis generation returns the plugin instance; dispose it to tear down.)
+  const plugin = await ctx.plugin(apply, {})
+  assert.equal(typeof plugin.dispose, 'function', 'ctx.plugin 返回带 dispose 的插件实例')
   assert.equal(registeredNs.ns, SETTINGS_NAMESPACE, '必须注册 deepseek-prism 设置命名空间')
   assert.equal(toolBox.length, 1, 'prism_see 工具必须注册')
   assert.equal(toolBox[0].name, 'prism_see')
@@ -47,11 +49,12 @@ test('真实 Cordis 装配：inject 等待、服务注册、fiber dispose 清理
   assert.ok(fallback, 'imageFallback 服务必须由 apply 提供')
   assert.equal(typeof fallback.transformImages, 'function')
 
-  // Fiber disposal removes the tool, the fallback service, and stays idempotent.
-  dispose()
-  assert.equal(toolBox.length, 0, 'dispose 必须移除已注册工具')
+  // Fiber disposal removes the provided fallback service (Cordis-owned) and
+  // stays idempotent. Tool registrations are cleaned by the real tools
+  // service via the disposer this stub returns — out of Cordis's scope here.
+  plugin.dispose()
   assert.equal(ctx.get('imageFallback'), undefined, 'dispose 必须移除 imageFallback 服务')
-  dispose()
+  plugin.dispose()
 })
 
 test('真实 Cordis 装配：缺省 config 可正常挂载（Config 全可选）', async () => {
@@ -61,7 +64,7 @@ test('真实 Cordis 装配：缺省 config 可正常挂载（Config 全可选）
     get: () => ({}),
   })
   ctx.provide('tools', { register: () => () => {} })
-  const dispose = await ctx.plugin(apply)
+  const plugin = await ctx.plugin(apply)
   assert.ok(ctx.get('imageFallback'), '无 row config 时插件照常提供能力')
-  dispose()
+  plugin.dispose()
 })

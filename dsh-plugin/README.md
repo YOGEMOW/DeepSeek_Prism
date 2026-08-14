@@ -1,5 +1,10 @@
 # @yogemow/dsh-prism
 
+> **技术储备（已存档）**：本目录为「完整 UI 集成路线」的参考实现，**不再作为主线维护**。
+> 主线为 `packages/plugin-dsh`（零补丁 B 架构 + 最小补丁包混合路线，见仓库根 README）。
+> 本实现的价值在于：VEP 折叠链接、执行链进度卡片、用量/余额显示、原图保留展示的完整参考——这些能力在主线以「最小 harness 补丁包 + 设置开关」形式提供。
+> 保留此目录用于参考与回滚，不参与发布流程。
+
 DeepSeek Prism 的 Harness 插件形态：宿主插件注册 `deepseek-prism` 设置命名空间与模型可见的 `prism_see` 工具；浏览器半在 设置 → 插件 → 可配置 中提供配置卡片（视觉 API 密钥、模型、Base URL、区域）。
 
 视觉流水线复用同仓库 `deepseek-prism/scripts/vision.mjs`（prompt、Provider、解析、VEP/1 编译），该脚本通过仓库相对路径在运行时动态导入，因此本 bundle 必须以源码 checkout 形态（`dsh plugin add <路径>`）安装，且与 `deepseek-prism/` 技能目录相邻。

@@ -2,6 +2,18 @@
 
 ## [未发布]
 
+### Added
+
+- **VEP 转换降级模式**（DSH 插件）：设置卡片新增「图片降级模式」（`pointer` 默认 / `vep`）与「显示识别消耗 token」「显示余额与消耗额」开关。`vep` 模式在准入时把图片直接转为 VEP/2 文本（八模式意图、自适应预算、双图 diff、用量行），并**保留原图附件**（消息内展示）；需 `harness-patch/dsh-prism-minimal.patch`（设置白名单一行 + llm-deepseek 图片剥离 + ui-conversation 折叠/执行链信号）。`pointer` 模式保持零补丁文本指针行为。
+- 新增 `harness-patch/dsh-prism-minimal.patch`（主线最小补丁，官方基线验证可应用）与 `harness-patch/README.md`（两套补丁的定位说明）。
+
+### Changed
+
+- 决策：`dsh-plugin/`（旧「完整 UI 集成路线」）转为**技术储备**（参考实现，不参与发布，README 已标注）；主线为 `packages/plugin-dsh`（零补丁 B 架构 + 最小补丁包混合路线），Codex skills 支持（`packages/skill`）保持不变。
+- DSH 插件测试扩展至 20 项（新增 vep 模式转换 / 无密钥回退用例）。
+
+## [未发布]
+
 ### Changed
 
 - **合并两条开发线的 vision.mjs 能力**：在 v0.5.0（sharp 缩放 / 自动续写 / detail 分级）基础上移植 VEP/2 多模式增量——`inferMode` 扩展八种模式（新增 `qa` 带意图问答 / `grounding` 对象定位 / `diff` 双图对比，问句优先于界面模式）；`MODE_RULES` 强化完整事实提取（ocr 逐字全文、general 完整描述）；`buildPrompt` schema 新增 `g`（归一化 bounding box）/ `d`（像素差异区域）/ `art`（可交付产物如 UI 还原 HTML）；`parseVisionResult` / `toVep` 支持新字段并升级为 VEP/2（分级裁剪保留 g/d）；`callVision` 支持多图（`imageDataUrls`，diff 双图同请求）；新增 `queryBalance`（SiliconFlow `/v1/user/info`，失败静默）；`PROMPT_VERSION` 升 `dv-2`。

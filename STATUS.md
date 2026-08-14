@@ -2,7 +2,8 @@
 
 ## 已完成
 
-- VEP/2 多模式合并入主线（2026-08-15）：在 v0.5.0 基础上移植八模式意图（qa/grounding/diff 等）、完整事实提取规则、`g`/`d`/`art` 字段、多图 `callVision`、`queryBalance`、VEP/2 输出与 `dv-2` 提示版本；作废并删除并行路线 `dsh-plugin/` 与 `harness-patch/`（降级机制不同，功能增量已并入 vision.mjs）；skill 测试 49 项、插件测试 18 项全部通过；SKILL.md 统一 `<资源目录>` 并补充 resourceBase 说明。
+- 主线混合路线落地（2026-08-15）：`packages/plugin-dsh` 新增 **VEP 转换降级模式**（设置开关：`pointer` 零补丁默认 / `vep` 需最小补丁）——vep 模式在准入时直接生成 VEP/2 文本（八模式意图、自适应预算、双图 diff、用量/余额开关）并保留原图附件；新增 `harness-patch/dsh-prism-minimal.patch`（设置白名单一行 + llm-deepseek 图片剥离 + ui-conversation 折叠/执行链信号，官方基线验证可应用）；`dsh-plugin/` 转为**技术储备**（参考实现，README 标注，不参与发布）；Codex skills（`packages/skill`）保持不变；测试：plugin-dsh 20 项（新增 vep 模式用例）、dsh-plugin 15 项、skill 49 项全部通过。
+- VEP/2 多模式合并入主线（2026-08-15）：在 v0.5.0 基础上移植八模式意图（qa/grounding/diff 等）、完整事实提取规则、`g`/`d`/`art` 字段、多图 `callVision`、`queryBalance`、VEP/2 输出与 `dv-2` 提示版本；SKILL.md 统一 `<资源目录>` 并补充 resourceBase 说明。
 - 三个参考仓库代码阅读与方案合成（observer 五模式 / vision.js 零依赖调用 / free-vision VEP + 降级 + 缓存）。
 - SiliconFlow GLM-4.5V 接口实测（模型可用、盒子标记、reasoning tokens）。
 - 项目目录、六份文档、AGENTS.md、.gitignore、.env 建立；Skill 骨架初始化。

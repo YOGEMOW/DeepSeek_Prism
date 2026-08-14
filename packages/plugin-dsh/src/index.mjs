@@ -38,6 +38,20 @@ export const VISION_PROVIDERS = [
 /** 默认凭据引用（环境变量名）。 */
 export const DEFAULT_API_KEY_REF = "SILICONFLOW_API_KEY";
 
+/** 降级模式：pointer = 文本指针（零补丁）；vep = VEP 转换（需最小补丁包，原图保留 + 用量显示）。 */
+export const DEGRADE_MODES = ["pointer", "vep"];
+
+/** VEP 模式的估算单价（¥/1M tokens，SiliconFlow zai-org/GLM-4.5V，2026-08）。 */
+const PRICE_PER_M = { input: 0.14, output: 0.86 };
+
+/** VEP 模式自适应预算档位（按图片字节选择，输出触顶自动升级重试）。 */
+const BUDGET_TIERS = [
+  { maxBytes: 256 * 1024, maxTokens: 512, timeoutMs: 45_000, maxChars: 520 },
+  { maxBytes: 1024 * 1024, maxTokens: 1024, timeoutMs: 60_000, maxChars: 1024 },
+  { maxBytes: Number.POSITIVE_INFINITY, maxTokens: 2048, timeoutMs: 90_000, maxChars: 2048 },
+];
+const TIER_EXHAUSTED_RATIO = 0.95;
+
 /**
  * 技能素材源目录：优先包内 `skill/`（发布形态），
  * 回退仓库 `deepseek-prism/`（源码形态，便于本地开发与测试）。
@@ -181,6 +195,188 @@ export async function degradeImageContent(ctx, content, home = dshHome()) {
 }
 
 /**
+ * 动态加载技能目录的 vision.mjs（与技能素材同源，零额外依赖）。
+ * @returns {Promise<object>} vision.mjs 的导出。
+ */
+export async function loadVisionModule() {
+  const dir = resolveSkillSource();
+  const { pathToFileURL } = await import("node:url");
+  return import(pathToFileURL(path.join(dir, "scripts", "vision.mjs")).href);
+}
+
+/** 归一化 callVision withMeta 返回的 usage 块。 */
+function normalizeUsage(usage) {
+  const u = usage ?? {};
+  return {
+    promptTokens: Number(u.prompt_tokens) || 0,
+    completionTokens: Number(u.completion_tokens) || 0,
+    totalTokens: Number(u.total_tokens) || 0,
+  };
+}
+
+/**
+ * 自适应预算识别：按图片字节选择档位，输出触顶（≥95%）自动升级一档重试，
+ * 用量汇总所有轮次。
+ * @returns {Promise<{ raw: string, usage: object, maxChars: number }>}
+ */
+async function recognizeWithBudget(vision, provider, prompt, imageDataUrls, bytes, withMeta) {
+  let tierIndex = BUDGET_TIERS.findIndex((tier) => bytes <= tier.maxBytes);
+  if (tierIndex < 0) tierIndex = BUDGET_TIERS.length - 1;
+  let totals = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+  for (;;) {
+    const tier = BUDGET_TIERS[tierIndex];
+    const result = await vision.callVision({
+      provider,
+      apiKey: provider.apiKey,
+      baseUrl: provider.baseUrl,
+      model: provider.defaultModel,
+      prompt,
+      imageDataUrls,
+      maxTokens: tier.maxTokens,
+      timeoutMs: tier.timeoutMs,
+      withMeta: true,
+    });
+    const current = normalizeUsage(result.usage);
+    totals = {
+      promptTokens: totals.promptTokens + current.promptTokens,
+      completionTokens: totals.completionTokens + current.completionTokens,
+      totalTokens: totals.totalTokens + current.totalTokens,
+    };
+    if (current.completionTokens >= tier.maxTokens * TIER_EXHAUSTED_RATIO
+      && tierIndex < BUDGET_TIERS.length - 1) {
+      tierIndex += 1;
+      continue;
+    }
+    return { raw: result.text, usage: totals, maxChars: tier.maxChars };
+  }
+}
+
+/** 用量行（`【DeepSeek Prism 用量】tokens=…|balance=…|cost=…`），按开关与可用数据组装。 */
+async function buildUsageLine(section, vision, totals) {
+  const fields = [];
+  if (section.showUsage !== false && totals.totalTokens > 0) {
+    fields.push(`tokens=${totals.totalTokens}`);
+  }
+  if (section.showBalance === true) {
+    const balance = await vision.queryBalance({
+      baseUrl: providerOf(section, vision).baseUrl,
+      apiKey: providerOf(section, vision).apiKey,
+      providerId: "siliconflow",
+    });
+    if (balance !== null && balance > 0) fields.push(`balance=${balance}`);
+    if (totals.totalTokens > 0) {
+      const cost = (totals.promptTokens * PRICE_PER_M.input + totals.completionTokens * PRICE_PER_M.output) / 1_000_000;
+      fields.push(`cost=${cost.toFixed(6)}`);
+    }
+  }
+  return fields.length === 0 ? "" : `\n【DeepSeek Prism 用量】${fields.join("|")}`;
+}
+
+/** 由设置段构造 provider 描述（默认 siliconflow）。 */
+function providerOf(section, vision) {
+  const preset = (vision.PROVIDERS ?? []).find((p) => p.id === (section.provider || "siliconflow"))
+    ?? (vision.PROVIDERS ?? [])[0];
+  const baseUrl = section.baseUrl || preset.baseUrl;
+  return {
+    id: preset.id,
+    name: preset.name,
+    region: section.region || "cn",
+    baseUrl,
+    apiKey: process.env[section.apiKeyEnv || DEFAULT_API_KEY_REF] || "",
+    defaultModel: section.model || preset.defaultModel,
+    supportsDetail: true,
+    priority: 0,
+    notes: "",
+  };
+}
+
+/**
+ * VEP 转换降级（需最小补丁包）：图片经视觉流水线转为 VEP/2 文本块并保留
+ * 原图附件块（消息内展示；补丁的序列化器对模型请求剥离图片）。意图基于
+ * 用户附带文本推断（qa/grounding/diff 等八模式），双图 + 对比意图走单次
+ * 多图 diff 调用；按 showUsage/showBalance 附加用量行。
+ * @returns {Promise<Array>} 降级后的 content blocks。
+ */
+export async function degradeVepContent(ctx, content, section) {
+  const vision = await loadVisionModule();
+  const provider = providerOf(section, vision);
+  if (provider.apiKey === "") {
+    throw new Error("missing vision API key for vep degradation");
+  }
+  const textParts = content.filter((part) => part?.type === "text");
+  const imageParts = content.filter((part) => part?.type === "image");
+  const userText = textParts.map((part) => part.text).join("\n").trim();
+  const question = userText === ""
+    ? "完整精确提取图片中的全部文本内容，保留原文、顺序与换行；若图片没有文本则描述最重要的可见内容。"
+    : `${"完整精确提取图片中的全部文本内容，保留原文、顺序与换行；若图片没有文本则描述最重要的可见内容。"} 用户附带说明：${userText}`;
+  const mode = userText === "" ? vision.inferMode(question) : vision.inferMode(userText);
+  const prompt = vision.buildPrompt(question, mode);
+
+  // 原图附件：持久化并保留 image 块（补丁环境下请求侧剥离）。
+  const saved = [];
+  for (const part of imageParts) {
+    const data = Buffer.from(String(part.data), "base64");
+    const ref = await ctx.attachments.saveImage({
+      data,
+      mediaType: part.mediaType,
+      ...part.name === undefined ? {} : { name: part.name },
+    });
+    saved.push({ part, ref });
+  }
+
+  const blocks = [];
+  for (const part of content) {
+    if (part?.type !== "image") {
+      blocks.push({ type: "text", text: part.text });
+    }
+  }
+
+  if (mode === "diff" && imageParts.length === 2) {
+    const urls = saved.map((entry) => `data:${entry.part.mediaType};base64,${entry.part.data}`);
+    const bytes = Math.max(...saved.map((entry) => Buffer.from(entry.part.data, "base64").byteLength));
+    const { raw, usage, maxChars } = await recognizeWithBudget(vision, provider, prompt, urls, bytes);
+    const result = vision.parseVisionResult(raw, provider.id, provider.defaultModel, mode, false);
+    const name = (entry, index) => (entry.part.name && entry.part.name.trim() !== "" ? entry.part.name : `图 ${index + 1}`);
+    const usageLine = await buildUsageLine(section, vision, usage);
+    const text = `【DeepSeek Prism 对比：${name(saved[0], 1)} vs ${name(saved[1], 2)}】\n${vision.toVep(result, maxChars)}${usageLine}`;
+    blocks.push({ type: "text", text });
+    blocks.push(...saved.map((entry) => ({ type: "image", attachment: entry.ref })));
+    return blocks;
+  }
+
+  const recognized = [];
+  for (const entry of saved) {
+    const imageDataUrl = `data:${entry.part.mediaType};base64,${entry.part.data}`;
+    const bytes = Buffer.from(entry.part.data, "base64").byteLength;
+    const { raw, usage, maxChars } = await recognizeWithBudget(
+      vision, provider, prompt, [imageDataUrl], bytes
+    );
+    const result = vision.parseVisionResult(raw, provider.id, provider.defaultModel, mode, false);
+    const label = entry.part.name && entry.part.name.trim() !== ""
+      ? entry.part.name
+      : `图片 ${imageParts.indexOf(entry.part) + 1}`;
+    recognized.push({
+      text: `【DeepSeek Prism 识别：${label}】\n${vision.toVep(result, maxChars)}`,
+      usage,
+    });
+  }
+  const totals = recognized.reduce(
+    (sum, item) => ({
+      promptTokens: sum.promptTokens + item.usage.promptTokens,
+      completionTokens: sum.completionTokens + item.usage.completionTokens,
+      totalTokens: sum.totalTokens + item.usage.totalTokens,
+    }),
+    { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+  );
+  const usageLine = await buildUsageLine(section, vision, totals);
+  for (const item of recognized) {
+    blocks.push({ type: "text", text: `${item.text}${usageLine}` });
+  }
+  blocks.push(...saved.map((entry) => ({ type: "image", attachment: entry.ref })));
+  return blocks;
+}
+
+/**
  * 查询会话当前模型是否为纯文本（无 image 输入模态）。
  * 通过 `sessions.models` RPC（完整请求形状 { payload: { sessionId } }）读取
  * 当前选择，再经 `llm.resolveModelInfo` 判定。
@@ -215,10 +411,14 @@ export function installPromptDegradation(ctx) {
     }
     if (!textOnly) return originalPrompt(request);
     try {
-      const degraded = await degradeImageContent(ctx, content);
+      const section = ctx.get("settings")?.get(SETTINGS_NAMESPACE) ?? {};
+      const mode = section.degradeMode === "vep" ? "vep" : "pointer";
+      const degraded = mode === "vep"
+        ? await degradeVepContent(ctx, content, section)
+        : await degradeImageContent(ctx, content);
       return await originalPrompt({ ...request, payload: { ...request.payload, content: degraded } });
     } catch {
-      // 校验/持久化失败交由上游原逻辑处理（含拒绝路径与错误响应）。
+      // 校验/持久化/识别失败交由上游原逻辑处理（含拒绝路径与错误响应）。
       return originalPrompt(request);
     }
   };
@@ -305,6 +505,9 @@ export async function installPrismSettings(ctx, entryConfig = {}) {
     region: z.string().default("cn"),
     apiKeyEnv: z.string().role("credential-ref").default(DEFAULT_API_KEY_REF),
     apiKey: z.string().role("secret"),
+    degradeMode: z.string().default("pointer"),
+    showUsage: z.boolean().default(true),
+    showBalance: z.boolean().default(false),
   });
   let currentSource = () => entryConfig;
   installSettingsSection(ctx, settingsNamespace(SETTINGS_NAMESPACE), schema, entryConfig, {

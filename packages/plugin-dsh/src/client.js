@@ -20,6 +20,7 @@ const SETTINGS_NS = 'deepseek-prism-dsh';
 const DEFAULT_API_KEY_REF = 'SILICONFLOW_API_KEY';
 const PROVIDER_OPTIONS = ['', 'siliconflow', 'zhipu', 'modelscope', 'alibaba', 'openrouter', 'groq', 'custom'];
 const REGION_OPTIONS = ['cn', 'global'];
+const DEGRADE_OPTIONS = ['pointer', 'vep'];
 
 const zh = {
   cardTitle: 'DeepSeek Prism（识图）',
@@ -36,6 +37,14 @@ const zh = {
   modelHint: '留空 = Provider 默认模型。',
   region: '区域',
   regionHint: 'cn / global。',
+  degradeMode: '图片降级模式',
+  degradeModeHint: 'pointer = 文本指针（零补丁）；vep = VEP 转换（需最小补丁包，原图保留 + 用量显示）。',
+  degradePointer: '文本指针（零补丁）',
+  degradeVep: 'VEP 转换（需补丁）',
+  showUsage: '显示识别消耗 token',
+  showUsageHint: '在识别结果后附加本次消耗的 token 数。',
+  showBalance: '显示余额与消耗额',
+  showBalanceHint: '识别时查询账户余额并估算本次消耗金额（SiliconFlow）。',
   overridden: '已覆盖',
   reset: '重置',
   save: '保存',
@@ -59,6 +68,14 @@ const en = {
   modelHint: 'Empty = provider default model.',
   region: 'Region',
   regionHint: 'cn / global.',
+  degradeMode: 'Image degradation mode',
+  degradeModeHint: 'pointer = text pointer (zero patch); vep = VEP conversion (requires the minimal patch; keeps originals and usage).',
+  degradePointer: 'Text pointer (zero patch)',
+  degradeVep: 'VEP conversion (patched)',
+  showUsage: 'Show recognition token usage',
+  showUsageHint: 'Append the token count spent on the recognition.',
+  showBalance: 'Show balance and cost',
+  showBalanceHint: 'Query the account balance and estimate the cost (SiliconFlow).',
   overridden: 'Overridden',
   reset: 'Reset',
   save: 'Save',
@@ -97,6 +114,20 @@ function textSpec(field) {
   };
 }
 
+/** 布尔字段规格：'true'/'false' 文本 ↔ 布尔值。 */
+function boolSpec(field) {
+  return {
+    field,
+    format: (value) => (value === true ? 'true' : 'false'),
+    parse: (text) => {
+      const v = String(text ?? '').trim();
+      if (v === 'true') return { kind: 'set', value: true };
+      if (v === 'false') return { kind: 'set', value: false };
+      return undefined;
+    },
+  };
+}
+
 /** 凭据引用：设置段声明的环境变量名，缺省用默认引用。 */
 function refOf(snapshot) {
   const declared = snapshot?.value?.apiKeyEnv;
@@ -108,7 +139,11 @@ class PrismCardController {
   constructor(scope, api) {
     this.scope = scope;
     this.api = api;
-    this.specs = new Map(['provider', 'model', 'region', 'apiKeyEnv'].map((field) => [field, textSpec(field)]));
+    this.specs = new Map([
+      ...['provider', 'model', 'region', 'apiKeyEnv', 'degradeMode'].map((field) => [field, textSpec(field)]),
+      ['showUsage', boolSpec('showUsage')],
+      ['showBalance', boolSpec('showBalance')],
+    ]);
     this.staged = new Map();
     this.credential = { ref: '', configured: false, writable: true };
     this.listeners = new Set();
@@ -138,6 +173,10 @@ class PrismCardController {
       apiKeyWritable: this.credential.writable,
       providerOptions: PROVIDER_OPTIONS,
       regionOptions: REGION_OPTIONS,
+      degradeMode: this.field('degradeMode'),
+      degradeModeOptions: DEGRADE_OPTIONS,
+      showUsage: this.field('showUsage'),
+      showBalance: this.field('showBalance'),
     };
   }
 
@@ -326,7 +365,8 @@ function TextField({ id, label, hint, state, disabled, onEdit }) {
   );
 }
 
-function SelectField({ id, label, hint, state, options, disabled, onEdit }) {
+function SelectField({ id, label, hint, state, options, disabled, onEdit, labelOf }) {
+  const labelFor = labelOf ?? ((option) => (option === '' ? '(auto)' : option));
   return React.createElement('div', { style: rowStyle },
     React.createElement('label', { htmlFor: id, style: labelStyle }, label),
     React.createElement('select', {
@@ -335,7 +375,7 @@ function SelectField({ id, label, hint, state, options, disabled, onEdit }) {
       value: state.text,
       disabled,
       onChange: (event) => { onEdit(event.target.value); },
-    }, options.map((option) => React.createElement('option', { key: option, value: option }, option === '' ? '(auto)' : option))),
+    }, options.map((option) => React.createElement('option', { key: option, value: option }, labelFor(option)))),
     React.createElement('span', { style: hintStyle }, hint),
   );
 }
@@ -353,6 +393,20 @@ function SecretField({ id, label, hint, state, configured, stateLabel, disabled,
       disabled,
       placeholder: '••••••••••••••••',
       onChange: (event) => { onEdit(event.target.value); },
+    }),
+    React.createElement('span', { style: hintStyle }, hint),
+  );
+}
+
+function CheckboxField({ id, label, hint, checked, disabled, onToggle }) {
+  return React.createElement('div', { style: rowStyle },
+    React.createElement('label', { htmlFor: id, style: labelStyle }, label),
+    React.createElement('input', {
+      id,
+      type: 'checkbox',
+      checked,
+      disabled,
+      onChange: () => { onToggle(); },
     }),
     React.createElement('span', { style: hintStyle }, hint),
   );
@@ -408,6 +462,32 @@ function PrismCard(props) {
       state: state.apiKeyEnv,
       disabled,
       onEdit: (text) => { props.edit('apiKeyEnv', text); },
+    }),
+    SelectField({
+      id: 'prism-degrade-mode',
+      label: t('degradeMode'),
+      hint: t('degradeModeHint'),
+      state: state.degradeMode,
+      options: state.degradeModeOptions,
+      disabled,
+      onEdit: (text) => { props.edit('degradeMode', text); },
+      labelOf: (option) => (option === 'pointer' ? t('degradePointer') : option === 'vep' ? t('degradeVep') : option),
+    }),
+    CheckboxField({
+      id: 'prism-show-usage',
+      label: t('showUsage'),
+      hint: t('showUsageHint'),
+      checked: state.showUsage.text === 'true',
+      disabled,
+      onToggle: () => { props.edit('showUsage', state.showUsage.text === 'true' ? 'false' : 'true'); },
+    }),
+    CheckboxField({
+      id: 'prism-show-balance',
+      label: t('showBalance'),
+      hint: t('showBalanceHint'),
+      checked: state.showBalance.text === 'true',
+      disabled,
+      onToggle: () => { props.edit('showBalance', state.showBalance.text === 'true' ? 'false' : 'true'); },
     }),
     React.createElement('div', { style: { ...rowStyle, marginTop: 14 } },
       React.createElement('button', {

@@ -26,6 +26,12 @@ v0.4.0 起按平台分开发布两个包（GitHub Release 资产，见 [Releases
 
   插件启动时把包内技能注册进 `ctx.skills`（资源基准目录指向包内素材，不向技能根写副本）并包装图片降级；重启 GUI 后即可使用。也可手动复制 `deepseek-prism/` 到 `C:\Users\用户名\.dsh\skills\deepseek-prism`。
 
+  **降级模式**（设置 → 插件 → DeepSeek Prism 卡片）：
+  - `文本指针（pointer，默认）`：**零补丁**，纯官方 harness 即可用——图片存为附件并以文本指针（内容寻址路径）进入会话，模型按技能指引运行视觉脚本；
+  - `VEP 转换（vep）`：**需最小补丁包**（见 `harness-patch/README.md`）——图片在准入时直接转为 VEP/2 文本（八模式意图 / 自适应预算 / 用量与余额显示），消息保留原图附件，配合补丁启用对话内原图展示、识别执行链进度卡片与 VEP 折叠链接。补丁内容：设置白名单一行 + llm-deepseek 图片剥离 + ui-conversation 折叠/进度信号。
+
+  > `dsh-plugin/` 目录为旧「完整 UI 集成路线」的**技术储备**（参考实现，不参与发布），其能力已以「最小补丁包 + 降级模式开关」形式并入主线。
+
 - **Codex**：`@yogemow/deepseek-prism-skill`（含一键安装 CLI）：
 
   ```powershell
