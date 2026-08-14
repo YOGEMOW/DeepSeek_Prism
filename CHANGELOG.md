@@ -1,6 +1,18 @@
 # CHANGELOG.md
 
-## [未发布]
+## [0.6.0] 2026-08-15
+
+### Added
+
+- **主线切换：harness 补丁完整路线取代零补丁 B 架构**（DSH 插件）：原 `dsh-plugin/` 技术储备整体迁入 `packages/plugin-dsh`（包名统一 `@yogemow/deepseek-prism-dsh`，版本对齐 0.5.0）——`prism_see` 工具 + `imageFallback` 接缝 + 设置卡片，依赖 `harness-patch/dsh-prism-harness.patch`（设置白名单 / 降级接缝 / 图片块剥离 / 前端 VEP 折叠与执行链进度卡片）；`vision.mjs` 解析改为「包内 `skill/` 优先、仓库回退」，npm pack 分发可用（prepack 自动物化素材）；`release.mjs` 与根 `npm test` 增加插件构建步骤并指向新测试路径。
+
+### Changed
+
+- **DSH 部署重新安装**（2026-08-15）：`dsh-prism-harness.patch` 应用回 deepseek-harness checkout 并重建 host/client 产物；插件经 `dsh plugin add` 装回 web profile；`deepseek-prism` 设置段恢复（含 API 密钥）。**需重启 harness 生效**。
+
+### Deprecated
+
+- **零补丁 B 架构主线废弃**：旧 `packages/plugin-dsh` 实现（`sessions.prompt` 包装 + 运行时技能注册 + pointer/vep 降级开关）归档至 `archive/plugin-dsh-zero-patch/`（不维护、不参与发布）；`harness-patch/dsh-prism-minimal.patch` 删除。
 
 ### Fixed
 
@@ -14,8 +26,6 @@
 - **DSH 设置卡片 UI 重做**（PluginCard 风格）：`packages/plugin-dsh` 的 client 卡片改为与 harness 其他插件卡片一致的可折叠卡片——头部（名称/描述/未保存徽章/chevron）+ 字段行（标签/已覆盖徽章/重置/提示，密钥密码框 + 已配置徽章）+ 保存/放弃脚注，全部改用 `--dsw-alias-*` 主题 token（原硬编码颜色移除）。
 - **卡片文案逻辑修订**：密钥标注必填；降级模式提示区分零补丁/需补丁并警示未打补丁勿切换；用量/余额开关注明「仅 VEP 模式」；补展开/收起/未保存/只读文案（中英文）。
 
-## [未发布]
-
 ### Added
 
 - **VEP 转换降级模式**（DSH 插件）：设置卡片新增「图片降级模式」（`pointer` 默认 / `vep`）与「显示识别消耗 token」「显示余额与消耗额」开关。`vep` 模式在准入时把图片直接转为 VEP/2 文本（八模式意图、自适应预算、双图 diff、用量行），并**保留原图附件**（消息内展示）；需 `harness-patch/dsh-prism-minimal.patch`（设置白名单一行 + llm-deepseek 图片剥离 + ui-conversation 折叠/执行链信号）。`pointer` 模式保持零补丁文本指针行为。
@@ -25,8 +35,6 @@
 
 - 决策：`dsh-plugin/`（旧「完整 UI 集成路线」）转为**技术储备**（参考实现，不参与发布，README 已标注）；主线为 `packages/plugin-dsh`（零补丁 B 架构 + 最小补丁包混合路线），Codex skills 支持（`packages/skill`）保持不变。
 - DSH 插件测试扩展至 20 项（新增 vep 模式转换 / 无密钥回退用例）。
-
-## [未发布]
 
 ### Changed
 

@@ -1,4 +1,5 @@
-# 以 insert 语义把插件条目加入 profile 组合（与 dsh-base 的 patch 写法一致）
+# DeepSeek Prism bundle layer: one dual-face row — the host plugin
+# (settings namespace + prism_see tool) and its browser settings card.
 - insert:
-    - id: deepseek-prism-dsh
+    - id: prism
       name: '@yogemow/deepseek-prism-dsh'

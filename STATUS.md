@@ -2,6 +2,8 @@
 
 ## 已完成
 
+- 发布 v0.6.0（2026-08-15）：主线切换为 harness 补丁完整路线（`prism_see` 工具 + `imageFallback` 接缝 + 设置卡片，依赖 `dsh-prism-harness.patch`），零补丁 B 架构废弃归档；DSH 部署重装（补丁 + 插件 + 设置段）；双包（`@yogemow/deepseek-prism-dsh` / `@yogemow/deepseek-prism-skill`）发布 GitHub Packages 并作为 GitHub Release v0.6.0 资产；根 `npm test` 61 项全部通过。
+- 主线切换（2026-08-15）：`dsh-plugin/`「完整 UI 集成路线」技术储备**提升为唯一主线**——整体迁入 `packages/plugin-dsh`（包名统一为 `@yogemow/deepseek-prism-dsh`，版本对齐 0.5.0；tsdown 产物/客户端 ModuleLoader id 同步改名），路线依赖 `harness-patch/dsh-prism-harness.patch`（设置白名单 + `ImageFallbackService` 接缝 + 图片块剥离 + 前端 VEP 折叠/进度卡片）；旧「零补丁 B 架构」主线**废弃并归档**至 `archive/plugin-dsh-zero-patch/`（README 标注，不参与发布），`harness-patch/dsh-prism-minimal.patch` 随之删除；`vision.mjs` 解析改为「包内 `skill/` 优先、仓库回退」，npm pack 分发可用（prepack 自动物化素材）；`release.mjs`/根 `npm test` 增加构建步骤并指向新测试；DSH 部署重新安装：补丁应用回 deepseek-harness checkout 并重建 host/client 产物，插件经 `dsh plugin add` 装回 web profile，`deepseek-prism` 设置段恢复（含 API 密钥）；根 `npm test` 61 项全部通过、插件 typecheck/build/npm pack 验证通过。**需重启 harness 生效**。
 - 主线混合路线落地（2026-08-15）：`packages/plugin-dsh` 新增 **VEP 转换降级模式**（设置开关：`pointer` 零补丁默认 / `vep` 需最小补丁）——vep 模式在准入时直接生成 VEP/2 文本（八模式意图、自适应预算、双图 diff、用量/余额开关）并保留原图附件；新增 `harness-patch/dsh-prism-minimal.patch`（设置白名单一行 + llm-deepseek 图片剥离 + ui-conversation 折叠/执行链信号，官方基线验证可应用）；`dsh-plugin/` 转为**技术储备**（参考实现，README 标注，不参与发布）；Codex skills（`packages/skill`）保持不变；测试：plugin-dsh 20 项（新增 vep 模式用例）、dsh-plugin 15 项、skill 49 项全部通过。
 - VEP/2 多模式合并入主线（2026-08-15）：在 v0.5.0 基础上移植八模式意图（qa/grounding/diff 等）、完整事实提取规则、`g`/`d`/`art` 字段、多图 `callVision`、`queryBalance`、VEP/2 输出与 `dv-2` 提示版本；SKILL.md 统一 `<资源目录>` 并补充 resourceBase 说明。
 - 三个参考仓库代码阅读与方案合成（observer 五模式 / vision.js 零依赖调用 / free-vision VEP + 降级 + 缓存）。
@@ -57,7 +59,7 @@
 
 ## 进行中
 
-- 无（保存提速 + 密钥 env 注入 + 图片准入接缝已完成；host 端改动需重启 harness 生效，待用户验证）。
+- 无（主线已切换为 harness 补丁完整路线并重新安装到 DSH；需重启 harness 生效，待用户验证）。
 
 ## 待处理
 

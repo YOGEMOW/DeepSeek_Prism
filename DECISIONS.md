@@ -97,3 +97,9 @@
 - 决策：2026-08-14 起，DSH 侧的宿主改造（api-proxy 图片降级）与技能整合为一个零依赖 Cordis 插件包 `@yogemow/deepseek-prism-dsh`（`dsh.bundle` 声明，`dsh plugin add` 自动激活）：插件在启动时把包内技能素材物化到 `$DSH_HOME/skills/deepseek-prism`（版本戳防重复、保留用户 `.env`），并包装 `ctx.apiProxy.sessions.prompt` 实现纯文本模型图片降级；DSH 宿主 checkout 不再需要本地补丁。发布流程改为双包分开发布：Codex 用 `@yogemow/deepseek-prism-skill`（含一键安装 CLI），DSH 用 `@yogemow/deepseek-prism-dsh`；`scripts/release.mjs` 统一编排（测试 → 版本同步 → npm pack → 发布 GitHub Packages），prepack 自动物化技能素材；发布物同时作为 GitHub Release 资产。
 - 原因：宿主源码是上游 deepseek-ai 仓库，本地补丁无法随发布分发且升级会冲突；插件化后修复随 npm 包独立版本化、可安装到任意 profile；GitHub Packages 免 npm 账号（gh token 带 `write:packages`）。
 - 代价：插件以包装 `sessions.prompt` 实现拦截，依赖 api-proxy 服务形状（`ctx.apiProxy.sessions` 为普通对象方法，fetch 载体调用同一实例）；宿主未来若改变该形状需同步适配；npm registry（npmjs.org）发布仍需 npm 账号，暂用 GitHub Packages。
+
+### D17 主线切换：harness 补丁完整路线（dsh-plugin）取代零补丁 B 架构
+
+- 决策：2026-08-15 起，DSH 集成唯一主线为「harness 补丁完整路线」——原 `dsh-plugin/` 技术储备整体迁入 `packages/plugin-dsh`（包名统一 `@yogemow/deepseek-prism-dsh`）：`prism_see` 工具 + `imageFallback` 接缝 + 设置卡片，依赖 `harness-patch/dsh-prism-harness.patch`（设置白名单 / 降级接缝 / 图片块剥离 / 前端 VEP 折叠与进度卡片）；旧「零补丁 B 架构」主线（包装 `sessions.prompt` + 运行时技能注册 + pointer/vep 降级开关）废弃并归档至 `archive/plugin-dsh-zero-patch/`（不维护、不参与发布），`dsh-prism-minimal.patch` 删除。
+- 原因：零补丁 B 架构在真实部署中持续出现链路断层（准入拒绝 `MODEL_DOES_NOT_SUPPORT_IMAGES`、密钥 env 注入、设置白名单等均需逐项修复，实际已不再是"零补丁"）；完整路线以 harness 官方 `ImageFallbackService` 接缝为准入点、以 `prism_see` 工具为模型入口，行为单一清晰（VEP/2 转换 + 原图保留 + UI 折叠/进度卡片），部署形态统一（补丁 + 插件），维护、测试与发布路径更简单（本机即 harness checkout，补丁可随仓库维护）。
+- 代价：依赖本地 harness checkout 补丁，上游 deepseek-harness 升级时需重新应用/适配（回退：`git apply -R` + 重建产物）；安装多一步（先补丁后插件）；未打补丁的部署保持官方拒绝行为（不可用）。

@@ -8,7 +8,7 @@
  * the configured vision API. The `imageFallback` service feeds the harness
  * prompt-admission seam so text-only models accept chat image attachments.
  *
- * @module @yogemow/dsh-prism
+ * @module @yogemow/deepseek-prism-dsh
  */
 
 import type { Context } from '@deepseek-ai/cordis'

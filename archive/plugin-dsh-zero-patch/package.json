@@ -1,0 +1,65 @@
+{
+  "name": "@yogemow/deepseek-prism-dsh",
+  "version": "0.5.0",
+  "description": "DeepSeek Prism for DeepSeek Harness (DSH): 纯文本模型图片附件降级 + 技能运行时注册 + 设置界面（视觉 API 密钥掩码输入与模型选择）。Image-attachment degradation, runtime skill registration, and settings UI (masked vision API key + model selection).",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./client": "./src/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "skill",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "prepack": "node ../../scripts/prepack-plugin-dsh.mjs",
+    "test": "node --test tests/plugin.test.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.0",
+    "@deepseek-ai/dsh-settings": ">=0.1.0-rc.5",
+    "@deepseek-ai/dsh-credentials": ">=0.1.0-rc.5",
+    "@deepseek-ai/schemastery": ">=0.1.0-rc.5"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-settings": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-credentials": {
+      "optional": true
+    },
+    "@deepseek-ai/schemastery": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "link:C:/Users/YOGIMOV/.dsh/profiles/node_modules/@deepseek-ai/cordis"
+  },
+  "keywords": [
+    "deepseek",
+    "prism",
+    "vision",
+    "skill",
+    "deepseek-harness",
+    "dsh",
+    "cordis"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOGEMOW/DeepSeek_Prism.git",
+    "directory": "packages/plugin-dsh"
+  }
+}

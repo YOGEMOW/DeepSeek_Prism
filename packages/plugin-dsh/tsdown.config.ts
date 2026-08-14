@@ -39,7 +39,7 @@ function sourceAssetPath(source: string, importer: string): string {
 
 export default [
   {
-    name: '@yogemow/dsh-prism',
+    name: '@yogemow/deepseek-prism-dsh',
     entry: ['src/index.ts'],
     outDir: 'lib',
     format: ['esm'],
@@ -57,7 +57,7 @@ export default [
     ],
   },
   {
-    name: '@yogemow/dsh-prism/client',
+    name: '@yogemow/deepseek-prism-dsh/client',
     entry: { client: 'src/client/index.tsx' },
     outDir: 'lib',
     format: 'cjs',
@@ -94,10 +94,10 @@ export default [
         for (const [local, exp] of Object.entries(cssExports ?? {})) classMap[local] = exp.name
         return [
           `const css = ${JSON.stringify(code.toString())};`,
-          `const tagId = ${JSON.stringify(`@yogemow/dsh-prism/${basename(fileId)}`)};`,
+          `const tagId = ${JSON.stringify(`@yogemow/deepseek-prism-dsh/${basename(fileId)}`)};`,
           'if (typeof document !== \'undefined\' && document.querySelector(\'style[data-plugin-css=\' + JSON.stringify(tagId) + \']\') === null) {',
           '  const tag = document.createElement(\'style\');',
-          '  tag.dataset.plugin = \'@yogemow/dsh-prism\';',
+          '  tag.dataset.plugin = \'@yogemow/deepseek-prism-dsh\';',
           '  tag.dataset.pluginCss = tagId;',
           '  tag.textContent = css;',
           '  document.head.appendChild(tag);',
@@ -108,7 +108,7 @@ export default [
     }],
     outputOptions: {
       entryFileNames: 'client.js',
-      banner: 'window.__ModuleLoader__.load({ id: "@yogemow/dsh-prism", factory: (require) => {',
+      banner: 'window.__ModuleLoader__.load({ id: "@yogemow/deepseek-prism-dsh", factory: (require) => {',
       footer: 'return module.exports; } });',
       intro: 'var module = { exports: {} }; var exports = module.exports;',
     },

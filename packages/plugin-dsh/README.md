@@ -1,32 +1,61 @@
 # @yogemow/deepseek-prism-dsh
 
-DeepSeek Prism 的 DeepSeek Harness（DSH）插件（主线实现，零补丁默认）。
+DeepSeek Prism 的 Harness 插件形态（DSH 主线）：宿主插件注册 `deepseek-prism` 设置命名空间与模型可见的 `prism_see` 工具；浏览器侧在 设置 → 插件 → 可配置 中提供配置卡片（视觉 API 密钥、模型、Base URL、区域、用量/余额开关）。
 
-## 能力
+视觉流水线复用同仓库 `deepseek-prism/scripts/vision.mjs`（prompt、Provider、解析、VEP/2 编译）。源码 checkout 安装时通过仓库相对路径在运行时动态导入（bundle 与 `deepseek-prism/` 技能目录相邻）；`npm pack`/发布形态由 prepack 把技能素材物化进包内 `skill/`，两种形态解析顺序为「包内 `skill/` 优先、仓库回退」。
 
-- **技能运行时注册**：把包内 `deepseek-prism` 技能注册进 `ctx.skills`（资源基准指向包内素材，不写 `$DSH_HOME/skills` 副本），模型可经 skill 工具加载。
-- **纯文本模型图片降级**（包装 `apiProxy.sessions.prompt` 公共 RPC）：
-  - `pointer`（默认，零补丁）：图片持久化后以文本指针（内容寻址路径）进入会话，模型按技能指引运行视觉脚本；
-  - `vep`（需最小补丁包，见 `../harness-patch/README.md`）：准入时直接生成 VEP/2 文本（八模式意图、自适应预算、双图 diff、用量/余额显示），消息保留原图附件（对话内展示）。
-- **设置界面**：视觉 Provider / 模型 / 区域 / 密钥环境变量名 / 密钥（凭据库掩码写入）/ 降级模式 / 用量与余额显示开关。
+> 本路线依赖 harness 配套补丁 `harness-patch/dsh-prism-harness.patch`（一次性应用，见 `../harness-patch/README.md`）；旧「零补丁 B 架构」主线已废弃并归档至 `archive/plugin-dsh-zero-patch/`。
+
+## 功能
+
+- **设置界面配置**：设置 → 插件 → 可配置 → DeepSeek Prism（识图）卡片。API 密钥为写后即掩的 secret（`role('secret')`），任何响应都不会回传其值；卡片通过脱敏 describe 的 `secrets` 槽位显示"已设置/未设置"。
+- **`prism_see` 工具**：模型传入图片路径/URL 与聚焦问题，返回 VEP/2 紧凑证据（`detail: true` 时输出分节报告）。密钥解析顺序：设置文档 → 环境变量 `SILICONFLOW_API_KEY` / `VISION_API_KEY`。
+- **对话发图自动降级**：宿主插件提供可选 `imageFallback` 服务——当前模型不支持图片输入时，harness 的 prompt 准入把用户上传的图片交给本插件转为 VEP/2 文本后入会话（八模式意图、自适应预算、双图 diff、用量/余额行），原图保留为展示附件；依赖 harness 的 `ImageFallbackService` 接缝（见前置条件）。
+- **模型/Base URL/区域**：设置文档覆盖默认值（`zai-org/GLM-4.5V`、`https://api.siliconflow.cn/v1`、`cn`），也接受 `VISION_MODEL` / `VISION_BASE_URL` / `VISION_REGION` 环境变量覆盖。
 
 ## 安装
 
 ```powershell
-pnpm dsh plugin --profile web add <本仓库>\packages\plugin-dsh
-pnpm dsh --profile web --port 8080
+# 在 deepseek-harness checkout 下执行（源码 checkout 形态，需与 deepseek-prism/ 相邻）
+pnpm dsh plugin --profile web add E:\Git\repositoris\DeepSeek_Prism\packages\plugin-dsh
+# 或从发布 tarball 安装（包内已含 skill/ 素材，无需相邻目录）：
+pnpm dsh plugin --profile web add <deepseek-prism-dsh-*.tgz>
 ```
+
+首次 add 会初始化 profile（若尚未初始化）。安装后**重启 web 服务**使新行生效（`dsh` 组合无热重载）：
+
+```powershell
+pnpm dsh --profile web --port 8080   # 按你实际启动方式重启
+```
+
+### 前置条件：harness 配套改动（一次性，必装补丁）
+
+插件依赖 harness 源码的配套改动，已打包为 `../harness-patch/dsh-prism-harness.patch`（设置白名单、发图降级接缝、文本模型图片剥离、前端 VEP 折叠与进度卡片；详情与重建命令见 `../harness-patch/README.md`）：
+
+```powershell
+# 在 deepseek-harness checkout 下
+git apply <本仓库>\harness-patch\dsh-prism-harness.patch
+```
+
+应用后按补丁 README 的重建命令重建 host/client 产物并重启 web 服务。改动均为纯增量：设置白名单一行、`ImageFallbackService` 可选接缝（未挂载插件的部署行为不变）、图片块剥离（文本模型兜底）。
+
+### 前置条件：开发依赖 link 路径（他人机器）
+
+`package.json` 的 devDependencies 全部为 `link:` 指向本机路径（`C:/Users/.../.dsh/profiles/node_modules/*` 与 `E:/Git/.../deepseek-harness/node_modules/*`）。**在另一台机器上构建前**，先把这些路径改为你本机对应的 profile/harness 位置（harness 重建后其 node_modules 即有这些包），再 `pnpm install`。
+
+重启后在 设置 → 插件 → 可配置 填写密钥与模型并保存，随后可直接在对话中上传图片（自动走 Prism 识别，原图保留在对话中、识别结果折叠为链接），或让模型使用 `prism_see` 按路径/URL 识图。
 
 ## 开发
 
 ```powershell
-pnpm install        # 建 cordis 测试 link（指向本机 profile）
-node --test tests/plugin.test.mjs tests/real-composition.test.mjs
+# 依赖：devDependencies 为 link: 指向本机 profile/harness node_modules；按需调整后
+pnpm install            # 或手工建立 node_modules 联接
+pnpm run build          # tsdown：lib/index.js（宿主）+ lib/client.js（浏览器）
+pnpm run typecheck      # tsc --noEmit
+pnpm run test           # node tests/host.spec.mjs tests/real-composition.spec.mjs
 ```
 
 ## 已知限制
 
-- **`process.env` 注入不回滚**：设置生效时把密钥与 `VISION_PROVIDER/VISION_MODEL/VISION_REGION` 注入宿主进程环境（vision.mjs 子进程继承）；插件卸载后这些 env 保持（进程级副作用，bundle 常驻影响小）。
-- **设置依赖为可选**：`dsh-settings`/`dsh-credentials`/`schemastery` 缺失时设置功能静默降级（日志告警），技能与降级不受影响。
-- **prompt 包装为链式**：保存安装时的实现引用，dispose 时仅在自己仍是最外层时恢复；多个插件顺序包装时各自恢复，不丢失中间层。
-- `vep` 模式依赖 harness 最小补丁（序列化器剥离图片块、ui-conversation 折叠/进度信号、设置白名单一行）；未打补丁时请保持 `pointer` 模式。
+- 工具不包含本地缓存（技能 CLI 的 SHA-256 缓存仅存在于 `vision.mjs see` 命令路径）。
+- `prism_see` 默认不做工具级超时暴露（沿用 vision.mjs 的 45s / detail 150s）。

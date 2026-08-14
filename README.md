@@ -18,19 +18,19 @@
 
 v0.4.0 起按平台分开发布两个包（GitHub Release 资产，见 [Releases](https://github.com/YOGEMOW/DeepSeek_Prism/releases)）：
 
-- **DSH（DeepSeek Harness）**：`@yogemow/deepseek-prism-dsh`（Cordis 插件，运行时注册技能 + 纯文本模型图片降级）：
+- **DSH（DeepSeek Harness）**：`@yogemow/deepseek-prism-dsh`（Cordis 插件，`prism_see` 工具 + 图片准入 VEP 降级 + 设置卡片）。**依赖 harness 配套补丁** `harness-patch/dsh-prism-harness.patch`（一次性应用，含设置白名单、`ImageFallbackService` 接缝、图片块剥离与前端 VEP 折叠/进度卡片；应用与重建步骤见 `harness-patch/README.md`）：
 
   ```powershell
-  pnpm dsh plugin --profile web add https://github.com/YOGEMOW/DeepSeek_Prism/releases/download/v0.4.1/deepseek-prism-dsh-0.4.1.tgz
+  # 1) 在 deepseek-harness checkout 应用补丁并按补丁 README 重建 host/client 产物
+  git apply <本仓库>\harness-patch\dsh-prism-harness.patch
+  # 2) 安装插件（源码 checkout 形态需与 deepseek-prism/ 相邻；tarball 形态包内已含 skill/ 素材）
+  pnpm dsh plugin --profile web add E:\Git\repositoris\DeepSeek_Prism\packages\plugin-dsh
+  # 3) 重启 web 服务
   ```
 
-  插件启动时把包内技能注册进 `ctx.skills`（资源基准目录指向包内素材，不向技能根写副本）并包装图片降级；重启 GUI 后即可使用。也可手动复制 `deepseek-prism/` 到 `C:\Users\用户名\.dsh\skills\deepseek-prism`。
+  插件能力：设置 → 插件 → 可配置 → DeepSeek Prism（识图）卡片配置视觉 API 密钥/模型/Base URL/区域；模型可用 `prism_see` 工具按路径/URL 识图；对话直接上传图片时，纯文本模型经 `imageFallback` 接缝自动转为 VEP/2 文本入会话（原图保留展示、识别结果折叠为链接、发送期间显示执行链进度卡片）。
 
-  **降级模式**（设置 → 插件 → DeepSeek Prism 卡片）：
-  - `文本指针（pointer，默认）`：**零补丁**，纯官方 harness 即可用——图片存为附件并以文本指针（内容寻址路径）进入会话，模型按技能指引运行视觉脚本；
-  - `VEP 转换（vep）`：**需最小补丁包**（见 `harness-patch/README.md`）——图片在准入时直接转为 VEP/2 文本（八模式意图 / 自适应预算 / 用量与余额显示），消息保留原图附件，配合补丁启用对话内原图展示、识别执行链进度卡片与 VEP 折叠链接。补丁内容：设置白名单一行 + llm-deepseek 图片剥离 + ui-conversation 折叠/进度信号。
-
-  > `dsh-plugin/` 目录为旧「完整 UI 集成路线」的**技术储备**（参考实现，不参与发布），其能力已以「最小补丁包 + 降级模式开关」形式并入主线。
+  > `archive/plugin-dsh-zero-patch/` 为旧「零补丁 B 架构」主线的归档参考（不维护、不参与发布）；`harness-patch/dsh-prism-minimal.patch` 已随其废弃。
 
 - **Codex**：`@yogemow/deepseek-prism-skill`（含一键安装 CLI）：
 

@@ -22,4 +22,5 @@
 | 16 | 非 Codex/DSH 桌面环境（纯 CLI）可能找不到 sharp | 大图只检测不缩放 | DSH Web 运行时自带 sharp 已覆盖 DSH 环境；纯 CLI 可把 `sharp` 安装到技能目录（`node_modules/sharp`）或设置 `VISION_SHARP_PATH`；`doctor` 会显示缩放后端状态 |
 | 17 | 自有解析器不识别 AVIF/TIFF/SVG | 这类图片此前无法参与宽高比分级与缩放 | 已用 sharp metadata 回退识别尺寸并支持缩放（2026-08-05）；AVIF/TIFF/SVG 缩放后统一转 PNG；`VISION_MAX_INPUT_PIXELS` 限制超大输入；无 sharp 时仍只认常见格式 |
 | 18 | 发布使用 GitHub Packages（npmjs.org 需 npm 账号） | 不使用 npm 官方源的用户安装不便 | 包为公开仓库自动公开；`scripts/release.mjs` 支持 `--registry` 覆盖；后续可申请 npm 账号切换 npmjs.org |
-| 19 | DSH 插件依赖 api-proxy 服务形状（包装 `sessions.prompt`） | 宿主升级若改变该形状，插件拦截失效 | 插件仅包装公开服务方法并在 dispose 时还原；宿主形状变化时同步适配；降级失败会回退上游原逻辑 |
+| 19 | DSH 主线依赖 harness 补丁（`ImageFallbackService` 接缝 + 设置白名单 + 序列化器图片剥离） | 上游 deepseek-harness 升级时补丁可能冲突或语义变化 | 补丁随仓库维护（`harness-patch/dsh-prism-harness.patch`），升级后重新应用/适配并重建 host/client 产物；回退用 `git apply -R` + 重建 | 
+| 20 | `prism_see` 工具与 `imageFallback` 接缝依赖包内/仓库 vision.mjs 的相邻布局 | 打包分发形态若缺失 skill/ 素材，运行时找不到脚本 | prepack 自动物化 `skill/` 进包；解析顺序「包内优先、仓库回退」，两者皆缺时报错指明安装形态 |

@@ -1,7 +1,7 @@
 /**
  * Diagnostic: replicate the Loader's plugin load against the REAL settings
  * service, to isolate whether apply() fails or the boot path is the issue.
- * Run from dsh-plugin: node scripts/diagnose.mjs
+ * Run from packages/plugin-dsh: node scripts/diagnose.mjs
  */
 import { Context } from '@deepseek-ai/cordis'
 import { SettingsProvider, settingsNamespace } from '@deepseek-ai/dsh-settings'
@@ -23,8 +23,8 @@ const fiber = ctx.plugin(MemoryProvider)
 await fiber
 ctx.provide('tools', { register() {} })
 
-console.log('loading @yogemow/dsh-prism via self-reference (loader path)...')
-const mod = await import('@yogemow/dsh-prism')
+console.log('loading @yogemow/deepseek-prism-dsh via self-reference (loader path)...')
+const mod = await import('@yogemow/deepseek-prism-dsh')
 console.log('module loaded:', mod.name, JSON.stringify(mod.inject))
 
 console.log('calling apply...')

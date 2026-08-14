@@ -62,8 +62,10 @@ async function main() {
   const skipTest = flags.includes("--skip-test");
 
   if (!skipTest) {
+    console.log("==> 构建插件（host.spec.mjs 依赖 lib 产物）");
+    run(`pnpm -C packages/plugin-dsh run build`);
     console.log("==> 运行测试");
-    run(`node --test deepseek-prism/tests/vision.test.mjs packages/plugin-dsh/tests/plugin.test.mjs`);
+    run(`node --test deepseek-prism/tests/vision.test.mjs packages/plugin-dsh/tests/host.spec.mjs packages/plugin-dsh/tests/real-composition.spec.mjs`);
   }
 
   console.log(`==> 同步版本 ${versionArg}`);
