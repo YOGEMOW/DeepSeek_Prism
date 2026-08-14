@@ -18,13 +18,13 @@
 
 v0.4.0 起按平台分开发布两个包（GitHub Release 资产，见 [Releases](https://github.com/YOGEMOW/DeepSeek_Prism/releases)）：
 
-- **DSH（DeepSeek Harness）**：`@yogemow/deepseek-prism-dsh`（Cordis 插件，含技能物化与纯文本模型图片降级）：
+- **DSH（DeepSeek Harness）**：`@yogemow/deepseek-prism-dsh`（Cordis 插件，运行时注册技能 + 纯文本模型图片降级）：
 
   ```powershell
-  pnpm dsh plugin --profile web add https://github.com/YOGEMOW/DeepSeek_Prism/releases/download/v0.4.0/deepseek-prism-dsh-0.4.0.tgz
+  pnpm dsh plugin --profile web add https://github.com/YOGEMOW/DeepSeek_Prism/releases/download/v0.4.1/deepseek-prism-dsh-0.4.1.tgz
   ```
 
-  插件启动时自动把技能素材写入 `$DSH_HOME\skills\deepseek-prism`（保留你的 `.env`）；重启 GUI 后即可使用。也可手动复制 `deepseek-prism/` 到 `C:\Users\用户名\.dsh\skills\deepseek-prism`。
+  插件启动时把包内技能注册进 `ctx.skills`（资源基准目录指向包内素材，不向技能根写副本）并包装图片降级；重启 GUI 后即可使用。也可手动复制 `deepseek-prism/` 到 `C:\Users\用户名\.dsh\skills\deepseek-prism`。
 
 - **Codex**：`@yogemow/deepseek-prism-skill`（含一键安装 CLI）：
 

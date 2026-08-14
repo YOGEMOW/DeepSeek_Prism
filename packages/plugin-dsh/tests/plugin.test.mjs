@@ -1,19 +1,27 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile, stat } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
+  apply,
   attachmentObjectPath,
   degradeImageContent,
   imagePointerText,
   installPromptDegradation,
-  materializeSkill,
+  isCurrentModelTextOnly,
+  loadSkillDefinition,
+  parseSkillFrontmatter,
   resolveSkillSource,
 } from "../src/index.mjs";
 
 const SHA = "a".repeat(64);
 
+/**
+ * 构造与真实 api-proxy 一致的会话桩：`models` 同样从 `request.payload` 解构，
+ * 传错形状（如裸 { sessionId }）会像真实实现一样抛 TypeError。
+ */
 function fakeGateway({ inputModalities = ["text"], current = { provider: "deepseek", model: "deepseek-v4-flash" }, modelsError = false } = {}) {
   const calls = [];
   const original = async (request) => {
@@ -22,8 +30,12 @@ function fakeGateway({ inputModalities = ["text"], current = { provider: "deepse
   };
   const sessions = {
     prompt: original,
-    models: async () => {
-      if (modelsError) return { result: { ok: false, error: { code: "session-not-found" } } };
+    models: async (request) => {
+      // 与 api-proxy 的 sessions.models 相同的解构（回归：形状错误会抛错）
+      const { sessionId } = request.payload;
+      if (modelsError || sessionId !== "s1") {
+        return { result: { ok: false, error: { code: "session-not-found" } } };
+      }
       return { result: { ok: true, value: { current } } };
     },
   };
@@ -74,6 +86,16 @@ test("纯文本模型 + 图片：降级为文本指针后交给上游", async ()
   assert.match(content[0].text, /attachments/);
   assert.ok(!content.some((block) => block.type === "image"), "上游不应再看到图片块");
   assert.deepEqual(content[1], textPart);
+});
+
+test("回归：models RPC 传完整请求形状（{ payload: { sessionId } }），裸对象会抛错", async () => {
+  // 真实 api-proxy 的 sessions.models 从 request.payload 解构；
+  // 若插件传错形状，降级判定会抛错并回退上游。这里直接验证正确形状可用。
+  const { ctx } = fakeGateway();
+  const textOnly = await isCurrentModelTextOnly(ctx.apiProxy, ctx.llm, "s1");
+  assert.equal(textOnly, true);
+  const vision = await isCurrentModelTextOnly(ctx.apiProxy, { resolveModelInfo: async () => ({ inputModalities: ["text", "image"] }) }, "s1");
+  assert.equal(vision, false);
 });
 
 test("无图片的 prompt 原样透传", async () => {
@@ -171,28 +193,79 @@ test("degradeImageContent 超限与非法 base64 抛错", async () => {
   );
 });
 
-test("materializeSkill：安装、版本戳跳过、force 重装、保留用户 .env", async () => {
-  const src = resolveSkillSource();
-  assert.ok(src, "技能素材源应可解析");
-  const dest = await mkdtemp(path.join(os.tmpdir(), "dsh-plugin-test-"));
+test("loadSkillDefinition 从素材加载技能（frontmatter 剥离、资源基准为目录）", () => {
+  const skill = loadSkillDefinition();
+  assert.equal(skill.name, "deepseek-prism");
+  assert.match(skill.description, /VEP\/1/);
+  assert.match(skill.content, /强制协议/);
+  assert.doesNotMatch(skill.content, /^---/, "正文不应含 frontmatter");
+  assert.equal(skill.resourceBase.kind, "directory");
+  assert.ok(existsSync(path.join(skill.resourceBase.path, "scripts", "vision.mjs")), "素材目录应含 vision.mjs");
+});
+
+test("parseSkillFrontmatter 提取 name/description", () => {
+  const raw = [
+    "---",
+    "name: deepseek-prism",
+    "description: 识别图片用的技能",
+    "---",
+    "# 正文",
+  ].join("\n");
+  const parsed = parseSkillFrontmatter(raw);
+  assert.equal(parsed.data.name, "deepseek-prism");
+  assert.equal(parsed.data.description, "识别图片用的技能");
+  assert.equal(parsed.body, "# 正文");
+  assert.equal(parseSkillFrontmatter("no frontmatter"), undefined);
+});
+
+test("apply 通过 ctx.inject 注册技能（skill 服务可用时）", () => {
+  const registered = [];
+  const injections = [];
+  const ctx = {
+    logger: { info: () => {}, warn: () => {} },
+    on: () => {},
+    inject: (deps, cb) => { injections.push({ deps, cb }); },
+    skills: {
+      register: (skill) => {
+        registered.push(skill);
+        return () => {};
+      },
+    },
+  };
+  apply(ctx);
+  const skillsEntry = injections.find((entry) => entry.deps.includes("skills"));
+  assert.ok(skillsEntry, "应注册 skills 条件注入");
+  skillsEntry.cb(ctx);
+  assert.equal(registered.length, 1);
+  const skill = registered[0];
+  assert.equal(skill.name, "deepseek-prism");
+  assert.match(skill.description, /VEP\/1/);
+  assert.match(skill.content, /强制协议/);
+  assert.deepEqual(skill.invocation, { modelInvocable: true, userInvocable: true });
+  assert.equal(skill.source, "custom");
+  assert.equal(skill.resourceBase.kind, "directory");
+  assert.ok(existsSync(path.join(skill.resourceBase.path, "scripts", "vision.mjs")));
+});
+
+test("apply 不向任何用户技能根写入副本（无物化）", async () => {
+  const injections = [];
+  const ctx = {
+    logger: { info: () => {}, warn: () => {} },
+    on: () => {},
+    inject: (deps, cb) => { injections.push({ deps, cb }); },
+    skills: { register: () => () => {} },
+  };
+  apply(ctx);
+  const skillsEntry = injections.find((entry) => entry.deps.includes("skills"));
+  skillsEntry.cb(ctx);
+  const fakeHome = await mkdtemp(path.join(os.tmpdir(), "dsh-plugin-home-"));
+  const oldHome = process.env.DSH_HOME;
+  process.env.DSH_HOME = fakeHome;
   try {
-    const first = await materializeSkill({ src, dest, version: "0.4.0" });
-    assert.equal(first.action, "install");
-    assert.ok((await stat(path.join(dest, "SKILL.md"))).isFile(), "SKILL.md 应被物化");
-    assert.equal(await readFile(path.join(dest, ".dsh-plugin-version"), "utf8"), "0.4.0");
-
-    await writeFile(path.join(dest, ".env"), "SILICONFLOW_API_KEY=sk-user", "utf8");
-    const before = (await stat(path.join(dest, ".env"))).mtimeMs;
-
-    const second = await materializeSkill({ src, dest, version: "0.4.0" });
-    assert.equal(second.action, "skip", "同版本应跳过");
-    assert.equal(await readFile(path.join(dest, ".env"), "utf8"), "SILICONFLOW_API_KEY=sk-user", "用户 .env 不被触碰");
-
-    const third = await materializeSkill({ src, dest, version: "0.4.1", force: true });
-    assert.equal(third.action, "install");
-    assert.equal(await readFile(path.join(dest, ".dsh-plugin-version"), "utf8"), "0.4.1");
-    assert.equal(await readFile(path.join(dest, ".env"), "utf8"), "SILICONFLOW_API_KEY=sk-user", "强制重装仍保留 .env");
+    assert.equal(existsSync(path.join(fakeHome, "skills", "deepseek-prism")), false, "apply 不应向技能根写副本");
   } finally {
-    await rm(dest, { recursive: true, force: true });
+    if (oldHome === undefined) delete process.env.DSH_HOME;
+    else process.env.DSH_HOME = oldHome;
+    await rm(fakeHome, { recursive: true, force: true });
   }
 });

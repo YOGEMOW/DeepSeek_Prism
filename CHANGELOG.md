@@ -1,5 +1,19 @@
 # CHANGELOG.md
 
+## [0.4.1] 2026-08-14
+
+### Fixed
+
+- **插件图片降级从未生效的根因**：`isCurrentModelTextOnly` 以裸 `{ sessionId }` 调用 `sessions.models`，而真实 api-proxy 从 `request.payload` 解构（抛错被 catch 吞掉后回退上游，图片上传仍被拒绝）；已改为完整请求形状 `{ payload: { sessionId } }`，并新增形状回归测试。实测：插件生效后纯文本模型图片上传降级成功。
+
+### Changed
+
+- **消除 harness 上的重复安装**：插件不再把技能素材物化到 `$DSH_HOME/skills/deepseek-prism`（不再产生文件系统副本），改为启动时通过 `ctx.skills.register` **运行时注册**技能（资源基准目录指向包内素材）；已清理 `~/.dsh/skills/deepseek-prism` 旧副本与仓库内生成的 `packages/*/bundle|skill` 素材副本（发布时由 prepack 按需再生成）。
+
+### Test
+
+- 插件测试 14 项全部通过（新增：models RPC 形状回归、技能注册、无物化验证）；`node --test` 全量 57 项通过。
+
 ## [0.4.0] 2026-08-14
 
 ### Added

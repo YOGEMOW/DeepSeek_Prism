@@ -1,6 +1,6 @@
 {
   "name": "@yogemow/deepseek-prism-dsh",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "DeepSeek Prism for DeepSeek Harness (DSH): 纯文本模型图片附件降级 + 自动物化 deepseek-prism 技能。Image-attachment degradation for text-only models and automatic skill materialization.",
   "type": "module",
   "main": "src/index.mjs",
