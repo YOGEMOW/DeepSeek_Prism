@@ -1,0 +1,41 @@
+{
+  "name": "@yogemow/deepseek-prism-dsh",
+  "version": "0.4.0",
+  "description": "DeepSeek Prism for DeepSeek Harness (DSH): 纯文本模型图片附件降级 + 自动物化 deepseek-prism 技能。Image-attachment degradation for text-only models and automatic skill materialization.",
+  "type": "module",
+  "main": "src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "skill",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "prepack": "node ../../scripts/prepack-plugin-dsh.mjs",
+    "test": "node --test tests/plugin.test.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "keywords": [
+    "deepseek",
+    "prism",
+    "vision",
+    "skill",
+    "deepseek-harness",
+    "dsh",
+    "cordis"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOGEMOW/DeepSeek_Prism.git",
+    "directory": "packages/plugin-dsh"
+  }
+}

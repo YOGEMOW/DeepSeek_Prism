@@ -21,3 +21,5 @@
 | 15 | Node 18/20 的 fetch 不读取 `HTTP_PROXY`/`HTTPS_PROXY`，企业代理环境可能无法调用视觉 API | 多端网络环境差异 | Node 24 可用 `NODE_USE_ENV_PROXY=1`；旧版本建议系统代理/VPN 或自定义 Base URL；后续可评估 ProxyAgent 集成 |
 | 16 | 非 Codex/DSH 桌面环境（纯 CLI）可能找不到 sharp | 大图只检测不缩放 | DSH Web 运行时自带 sharp 已覆盖 DSH 环境；纯 CLI 可把 `sharp` 安装到技能目录（`node_modules/sharp`）或设置 `VISION_SHARP_PATH`；`doctor` 会显示缩放后端状态 |
 | 17 | 自有解析器不识别 AVIF/TIFF/SVG | 这类图片此前无法参与宽高比分级与缩放 | 已用 sharp metadata 回退识别尺寸并支持缩放（2026-08-05）；AVIF/TIFF/SVG 缩放后统一转 PNG；`VISION_MAX_INPUT_PIXELS` 限制超大输入；无 sharp 时仍只认常见格式 |
+| 18 | 发布使用 GitHub Packages（npmjs.org 需 npm 账号） | 不使用 npm 官方源的用户安装不便 | 包为公开仓库自动公开；`scripts/release.mjs` 支持 `--registry` 覆盖；后续可申请 npm 账号切换 npmjs.org |
+| 19 | DSH 插件依赖 api-proxy 服务形状（包装 `sessions.prompt`） | 宿主升级若改变该形状，插件拦截失效 | 插件仅包装公开服务方法并在 dispose 时还原；宿主形状变化时同步适配；降级失败会回退上游原逻辑 |

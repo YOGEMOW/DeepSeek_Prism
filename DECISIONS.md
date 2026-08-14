@@ -91,3 +91,9 @@
 - 决策：2026-08-14 起，Skill 同时支持 Codex 与 DeepSeek Harness（DSH）：`vision.mjs` sharp 查找在 Codex 运行时之外新增 DSH Web 运行时（`~/.dsh/profiles/node_modules/sharp`，优先 `DSH_HOME` 解析）与 DSH 用户根候选；SKILL.md / README 给出 Codex（`C:\Users\用户名\.codex\skills\deepseek-prism`）与 DSH（`C:\Users\用户名\.dsh\skills\deepseek-prism`）两套安装路径；触发协议补充 DSH `read_image` 工具。
 - 原因：用户实际以 DSH（deepseek-harness）为宿主；Codex Skill 结构（SKILL.md + scripts + references + agents/openai.yaml）与 DSH skill 发现机制（`<技能名>/SKILL.md` + YAML frontmatter）同构，仅需补充平台相关的 sharp 查找与文档路径。
 - 代价：文档需维护两套安装路径；`agents/openai.yaml` 仅 Codex 消费，DSH 安装副本中为惰性文件（不产生行为）。
+
+### D16 DSH 插件化与双包发布
+
+- 决策：2026-08-14 起，DSH 侧的宿主改造（api-proxy 图片降级）与技能整合为一个零依赖 Cordis 插件包 `@yogemow/deepseek-prism-dsh`（`dsh.bundle` 声明，`dsh plugin add` 自动激活）：插件在启动时把包内技能素材物化到 `$DSH_HOME/skills/deepseek-prism`（版本戳防重复、保留用户 `.env`），并包装 `ctx.apiProxy.sessions.prompt` 实现纯文本模型图片降级；DSH 宿主 checkout 不再需要本地补丁。发布流程改为双包分开发布：Codex 用 `@yogemow/deepseek-prism-skill`（含一键安装 CLI），DSH 用 `@yogemow/deepseek-prism-dsh`；`scripts/release.mjs` 统一编排（测试 → 版本同步 → npm pack → 发布 GitHub Packages），prepack 自动物化技能素材；发布物同时作为 GitHub Release 资产。
+- 原因：宿主源码是上游 deepseek-ai 仓库，本地补丁无法随发布分发且升级会冲突；插件化后修复随 npm 包独立版本化、可安装到任意 profile；GitHub Packages 免 npm 账号（gh token 带 `write:packages`）。
+- 代价：插件以包装 `sessions.prompt` 实现拦截，依赖 api-proxy 服务形状（`ctx.apiProxy.sessions` 为普通对象方法，fetch 载体调用同一实例）；宿主未来若改变该形状需同步适配；npm registry（npmjs.org）发布仍需 npm 账号，暂用 GitHub Packages。

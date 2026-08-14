@@ -16,16 +16,26 @@
 
 ## 安装
 
-1. 将 `deepseek-prism/` 复制到对应平台的技能目录：
+v0.4.0 起按平台分开发布两个包（GitHub Release 资产，见 [Releases](https://github.com/YOGEMOW/DeepSeek_Prism/releases)）：
 
-   ```powershell
-   # Codex
-   Copy-Item -Recurse deepseek-prism C:\Users\用户名\.codex\skills\deepseek-prism
-   # DeepSeek Harness（DSH）
-   Copy-Item -Recurse deepseek-prism C:\Users\用户名\.dsh\skills\deepseek-prism
-   ```
+- **DSH（DeepSeek Harness）**：`@yogemow/deepseek-prism-dsh`（Cordis 插件，含技能物化与纯文本模型图片降级）：
 
-2. 配置密钥（任选其一，脚本按顺序查找：环境变量 → 运行目录 `.env` → 脚本目录 `.env` → 技能根目录 `.env`）：
+  ```powershell
+  pnpm dsh plugin --profile web add https://github.com/YOGEMOW/DeepSeek_Prism/releases/download/v0.4.0/deepseek-prism-dsh-0.4.0.tgz
+  ```
+
+  插件启动时自动把技能素材写入 `$DSH_HOME\skills\deepseek-prism`（保留你的 `.env`）；重启 GUI 后即可使用。也可手动复制 `deepseek-prism/` 到 `C:\Users\用户名\.dsh\skills\deepseek-prism`。
+
+- **Codex**：`@yogemow/deepseek-prism-skill`（含一键安装 CLI）：
+
+  ```powershell
+  npx @yogemow/deepseek-prism-skill   # 从 GitHub Release 资产安装：
+  npx https://github.com/YOGEMOW/DeepSeek_Prism/releases/download/v0.4.0/deepseek-prism-skill-0.4.0.tgz
+   # 或指定目标目录：npx deepseek-prism-skill --dest D:\skills
+   # 手动方式：Copy-Item -Recurse deepseek-prism C:\Users\用户名\.codex\skills\deepseek-prism
+  ```
+
+1. 配置密钥（任选其一，脚本按顺序查找：环境变量 → 运行目录 `.env` → 脚本目录 `.env` → 技能根目录 `.env`）：
 
    ```env
    SILICONFLOW_API_KEY=sk-xxxx
@@ -36,7 +46,7 @@
    - 或设置用户环境变量 `SILICONFLOW_API_KEY`（推荐，所有项目通用）；
    - 或在技能根目录（SKILL.md 所在目录）创建 `.env`（写入同样内容）。
 
-3. 让宿主重新加载技能列表（Codex 按技能发现机制刷新；DSH 的 skill-filesystem watcher 自动发现新目录，无需重启）。
+2. 让宿主重新加载技能列表（Codex 按技能发现机制刷新；DSH 的 skill-filesystem watcher 自动发现新目录，无需重启）。
 
 运行要求：Node.js >= 18（内置 fetch / node:test）；缩放自动使用 Codex 桌面运行时 / DSH Web 运行时自带的 sharp，无需额外安装。
 

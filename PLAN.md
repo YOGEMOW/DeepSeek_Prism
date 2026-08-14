@@ -11,10 +11,12 @@
 5. 安装与提交：Skill 复制安装到 `C:\Users\用户名\.codex\skills\deepseek-prism`；初始提交 `1a3f3d0`。
 6. 更名：项目与 Skill 由 DeepSeek_Vision / deepseek-vision 更名为 DeepSeek_Prism / deepseek-prism（显示名 “DeepSeek Prism”）。
 7. DSH 平台适配（2026-08-14，v0.3.0）：sharp 查找新增 DSH Web 运行时（`~/.dsh/profiles/node_modules/sharp`）与 DSH 用户根候选；SKILL.md / README / references/providers.md / PROJECT / PLAN / STATUS / DECISIONS / RISKS 双平台化；测试与 SiliconFlow 真实冒烟通过；发布 v0.3.0。
+8. 识图链路修复（2026-08-14，v0.3.1）：DSH 宿主图片降级（api-proxy 本地补丁）+ `vision.mjs` 魔数嗅探；发布 v0.3.1。
+9. DSH 插件化与双包发布（2026-08-14，v0.4.0）：`packages/plugin-dsh`（`@yogemow/deepseek-prism-dsh`，素材物化 + prompt 降级包装）与 `packages/skill`（`@yogemow/deepseek-prism-skill`，一键安装 CLI）；`scripts/release.mjs` 双包发布编排；宿主补丁回退；发布 v0.4.0。
 
 ### 当前进行中
 
-- 无（v0.3.0 已完成）。
+- 无（v0.4.0 已完成）。
 
 ### 后续待办
 

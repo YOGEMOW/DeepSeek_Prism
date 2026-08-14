@@ -1,5 +1,21 @@
 # CHANGELOG.md
 
+## [0.4.0] 2026-08-14
+
+### Added
+
+- **DSH 插件化**：新增 `packages/plugin-dsh`（`@yogemow/deepseek-prism-dsh`）——把此前对 DSH 宿主的 api-proxy 改造与技能整合为一个零依赖 Cordis 插件：
+  - 技能物化：插件启动时把包内携带的 deepseek-prism 素材写入 `$DSH_HOME/skills/deepseek-prism`（版本戳防重复、保留用户 `.env`），由 skill-filesystem 自动发现；
+  - 图片降级：包装 `apiProxy.sessions.prompt`，纯文本模型收到图片时降级为文本指针（描述 + 附件对象路径），视觉模型不受影响；不再需要修改/分叉 DSH 宿主源码。
+  - 安装：`dsh plugin --profile web add @yogemow/deepseek-prism-dsh`（`dsh.bundle` 声明自动激活）。
+- **双包发布**：新增 `packages/skill`（`@yogemow/deepseek-prism-skill`，Codex 用，含 `deepseek-prism-skill` 一键安装 CLI）与 `packages/plugin-dsh`（DSH 用）；发布编排脚本 `scripts/release.mjs`（测试 → 同步版本 → npm pack → 可选发布 GitHub Packages），prepack 自动把 `deepseek-prism/` 素材物化进各包；发布物（`dist/*.tgz`）作为 GitHub Release 资产分发（GitHub Packages 的 npm 发布需 classic PAT，脚本已支持 `NODE_AUTH_TOKEN`）。
+- 根 `package.json`（private workspaces）与发布文档同步（README / STATUS / DECISIONS D16 / PLAN / AGENTS / RISKS）。
+
+### Test
+
+- `node --test` 53 项全部通过（vision 43 + 插件 10：降级透传矩阵、校验回退、对象路径、素材物化与版本戳）。
+- skill-creator `quick_validate.py` 通过。
+
 ## [0.3.1] 2026-08-14
 
 ### Added
