@@ -50,9 +50,9 @@
 
 ## 进行中
 
-- 发布 v0.7.0 收尾：git 提交 `f460e54` + tag v0.7.0 已推送、GitHub Release v0.7.0 已创建（附双包 tarball）、仓库 About 描述已更新、README 版本选择矩阵与 PLAN 设计路线已更新。**GitHub Packages 的 npm 发布待用户 PAT**（沙箱无 `NODE_AUTH_TOKEN`，`gh auth token` 为 OAuth token 无 `write:packages` 权限 → 403；用户以 classic PAT 重跑 `node scripts/release.mjs 0.7.0 --skip-test` 即可发布双包）。
+- 发布 v0.7.0 收尾：git 提交 `f460e54` + tag v0.7.0 已推送、GitHub Release v0.7.0 已创建（附双包 tarball）、仓库 About 描述已更新、README 版本选择矩阵与 PLAN 设计路线已更新。**GitHub Packages 的 npm 发布待用户 PAT**（沙箱无 `NODE_AUTH_TOKEN`，`gh auth token` 为 OAuth token 无 `write:packages` 权限 → 403；按用户要求不重打包不重测，由用户以 classic PAT 对现有 `dist/*.tgz` 直接 `npm publish`）。
 
 ## 待处理
 
-- 用户侧补完 GitHub Packages 发布（classic PAT）；Codex 技能副本按需同步（skill 包内容未变）。
+- 用户侧补完 GitHub Packages 发布（classic PAT 直接 `npm publish` 现有 dist tarball）；Codex 技能副本按需同步（skill 包内容未变）。
 - Keychain / 自动裁剪 / 更多样例（按需）。
