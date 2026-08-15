@@ -1,6 +1,6 @@
 {
   "name": "@yogemow/deepseek-prism-dsh",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "DeepSeek Prism for DeepSeek Harness (DSH): prism_see tool + text-only-model image admission (VEP/2 conversion) + runtime deepseek-prism skill + settings card. Self-contained Cordis bundle — no harness checkout patch required.",
   "type": "module",
   "main": "lib/index.js",
