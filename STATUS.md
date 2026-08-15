@@ -50,9 +50,9 @@
 
 ## 进行中
 
-- 发布 v0.7.0（2026-08-16）：文档就绪（CHANGELOG 去未发布标记、README 版本选择矩阵、PLAN 设计路线、仓库 About 待更），正在执行 `scripts/release.mjs 0.7.0` 与 git 提交/tag/gh release。
+- 发布 v0.7.0 收尾：git 提交 `f460e54` + tag v0.7.0 已推送、GitHub Release v0.7.0 已创建（附双包 tarball）、仓库 About 描述已更新、README 版本选择矩阵与 PLAN 设计路线已更新。**GitHub Packages 的 npm 发布待用户 PAT**（沙箱无 `NODE_AUTH_TOKEN`，`gh auth token` 为 OAuth token 无 `write:packages` 权限 → 403；用户以 classic PAT 重跑 `node scripts/release.mjs 0.7.0 --skip-test` 即可发布双包）。
 
 ## 待处理
 
-- 发布收尾：GitHub 仓库 About 描述更新（`gh repo edit`）；Codex 侧技能副本按需同步。
+- 用户侧补完 GitHub Packages 发布（classic PAT）；Codex 技能副本按需同步（skill 包内容未变）。
 - Keychain / 自动裁剪 / 更多样例（按需）。
