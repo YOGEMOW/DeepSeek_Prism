@@ -30,7 +30,14 @@ export interface FieldView {
 
 /** What the card renders. */
 export interface PrismCardState {
-  /** False while the namespace is not served; the card renders nothing. */
+  /**
+   * Namespace sync status: `ready` while the Host exposes the namespace to
+   * this Web client, `unavailable` when the deployment's api-proxy allowlist
+   * does not (the card then shows configuration guidance instead of a form),
+   * `loading` until the first answer.
+   */
+  status: 'loading' | 'ready' | 'unavailable'
+  /** False while the namespace is not served; the card renders no form. */
   available: boolean
   /** Whether the Host document accepts writes. */
   writable: boolean
@@ -192,6 +199,7 @@ export class PrismCardController {
     const usage = value?.['showUsage']
     const balance = value?.['showBalance']
     return {
+      status: snapshot.status,
       available: snapshot.status === 'ready',
       writable: snapshot.writable,
       dirty: this.staged.size > 0,

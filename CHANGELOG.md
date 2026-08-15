@@ -1,5 +1,22 @@
 # CHANGELOG.md
 
+## [0.7.0] 2026-08-16
+
+### Changed
+
+- **自包含组合包路线：harness 零补丁**（DSH 插件，取代 0.6.x 的补丁依赖，见 DECISIONS D18）：
+  - 纯文本模型图片准入改为**包装 `apiProxy.sessions.prompt`**：图片 prompt 转 VEP/2 证据文本 + 附件持久化路径指针（模型可用 `prism_see` 对指针路径补查）后进上游；**原图块不再保留在消息中**（未打补丁的 `llm-deepseek` 序列化器会拒绝图片块），因此对任何 harness 代际都安全。
+  - **保留 `imageFallback` 服务提供**（harness 具备该接缝时直接消费；与 prompt 包装互为正反兜底，以 VEP 证据标记幂等防二次转换）。
+  - **恢复技能运行时注册**：`deepseek-prism` 技能经 `ctx.skills.register` 随包注册（资源在包内，不向 `~/.dsh/skills` 写副本），卸载插件即移除。
+  - **Cordis 工程化重构**：`apply` 改为按能力分组条件注入（tools / apiProxy+llm / skills 各自成组，无顶层 inject）；设置走 `installSettingsSection`（行配置 base 层 + setSource/onChange 回落）；所有注册经 `ctx.effect`/`ctx.provide`/`ctx.inject` 挂到 fiber，dispose 全量回收；可选服务一律 `ctx.get` 本地结构面，不新增硬依赖。
+  - **缺失密钥改为抛 `PrismConfigError` 直达客户端**（可操作指引），不再伪装成"模型不支持图片"。
+  - **Web 设置卡片降级为配置指引**：白名单未暴露（未打补丁部署）时显示环境变量 / profile 行配置两种方式，不再渲染必然失败的编辑表单；白名单暴露时行为与 0.6.x 一致。
+  - 配置三通道：Web 设置卡片（白名单暴露时）→ profile `cordis.patch.yml` 行配置（按 id 覆盖 `prism` 行）→ 环境变量（`SILICONFLOW_API_KEY`/`VISION_API_KEY`、`VISION_BASE_URL`、`VISION_MODEL`、`VISION_REGION`）；宿主解析后注入 `VISION_*`——非密钥值（model/baseUrl/region）可达模型子进程，harness 会清洗子进程环境中的 `*_API_KEY` 类密钥（实测 DEEPSEEK_API_KEY 同样不透传），模型直接运行 `vision.mjs` 的密钥走技能 `.env` 或 `prism_see`（重启验证时确认并修正文档）。
+  - 测试重写：29 项（宿主行为 + 真实 Cordis 装配：条件注入等待、fiber dispose 零残留、行配置权威来源、prompt 包装链式安全）。
+  - 文档同步：`packages/plugin-dsh/README.md`、`harness-patch/README.md`（补丁降级为可选 UI 增强）、根 README、PROJECT、STATUS、DECISIONS（D18）。
+- **deepseek-harness checkout 回退补丁**：15 处修改全部 revert（git checkout 上游），新增的 `message-vep.client.spec.tsx` 与两个遗留测试日志删除，host/client 产物重建为上游基线；`git status` 干净，上游更新不再冲突。
+- **重启验证（2026-08-16）**：重启后实测——`prism_see` 工具注册（新描述）、`deepseek-prism` 技能随包运行时注册进入技能目录、settings.yaml 的 `deepseek-prism.apiKey` 继续生效；`prism_see` 真实冒烟返回正确 VEP/2 证据（SiliconFlow GLM-4.5V，sample-error-log.png → error 模式）；对话发图实测通过（图片未经拒绝，自动转为附件路径指针 + VEP/2 证据 + 用量行，`tokens=1013` 为 512→1024 档自适应预算两轮合计）。
+
 ## [0.6.1] 2026-08-15
 
 ### Fixed

@@ -1,5 +1,21 @@
 # DeepSeek Prism bundle layer: one dual-face row — the host plugin
-# (settings namespace + prism_see tool) and its browser settings card.
+# (prism_see tool + text-only-model image admission + runtime skill) and its
+# browser settings card. No harness checkout patch is required; this layer is
+# the whole harness-side integration.
+#
+# Deployment configuration belongs in LATER layers, never in this file. Your
+# profile's own cordis.patch.yml can override this row by id, e.g.:
+#
+#   - id: prism
+#     config:
+#       model: zai-org/GLM-4.5V
+#       baseUrl: https://api.siliconflow.cn/v1
+#       region: cn
+#       apiKey: sk-…        # prefer SILICONFLOW_API_KEY / VISION_API_KEY env instead
+#
+# Environment variables are the other channel:
+# SILICONFLOW_API_KEY (or VISION_API_KEY), VISION_BASE_URL, VISION_MODEL,
+# VISION_REGION.
 - insert:
     - id: prism
       name: '@yogemow/deepseek-prism-dsh'

@@ -14,10 +14,11 @@
 8. 识图链路修复（2026-08-14，v0.3.1）：DSH 宿主图片降级（api-proxy 本地补丁）+ `vision.mjs` 魔数嗅探；发布 v0.3.1。
 9. DSH 插件化与双包发布（2026-08-14，v0.4.0）：`packages/plugin-dsh`（`@yogemow/deepseek-prism-dsh`，素材物化 + prompt 降级包装）与 `packages/skill`（`@yogemow/deepseek-prism-skill`，一键安装 CLI）；`scripts/release.mjs` 双包发布编排；宿主补丁回退；发布 v0.4.0。
 10. 主线切换（2026-08-15）：`dsh-plugin/` 完整 UI 集成路线（含 `harness-patch/dsh-prism-harness.patch`）提升为唯一主线并迁入 `packages/plugin-dsh`（`@yogemow/deepseek-prism-dsh`）；零补丁 B 架构废弃并归档至 `archive/plugin-dsh-zero-patch/`；`vision.mjs` 解析「包内 `skill/` 优先、仓库回退」，npm pack 分发可用；根 `npm test` 61 项通过；补丁重应用回 deepseek-harness checkout 并重建产物，插件装回 web profile，`deepseek-prism` 设置段恢复。
+11. 自包含组合包路线（2026-08-16，v0.7.0 零补丁版）：`packages/plugin-dsh` 重构为 harness 零补丁（`sessions.prompt` 包装 + `imageFallback` 服务 + 技能运行时注册 + `PrismConfigError` + 设置卡片指引态 + 三通道配置）；deepseek-harness checkout 回退全部补丁并重建上游基线；重启实测通过（工具 / 技能 / 设置密钥 / 发图准入 VEP 降级）；发布 v0.7.0。
 
 ### 当前进行中
 
-- 无（主线切换与 DSH 重装已完成；**待重启 harness 后验证**识图链路与设置卡片）。
+- 无（v0.7.0 零补丁版已发布并重启验证通过）。
 
 ### 后续待办
 

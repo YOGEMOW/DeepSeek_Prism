@@ -103,3 +103,9 @@
 - 决策：2026-08-15 起，DSH 集成唯一主线为「harness 补丁完整路线」——原 `dsh-plugin/` 技术储备整体迁入 `packages/plugin-dsh`（包名统一 `@yogemow/deepseek-prism-dsh`）：`prism_see` 工具 + `imageFallback` 接缝 + 设置卡片，依赖 `harness-patch/dsh-prism-harness.patch`（设置白名单 / 降级接缝 / 图片块剥离 / 前端 VEP 折叠与进度卡片）；旧「零补丁 B 架构」主线（包装 `sessions.prompt` + 运行时技能注册 + pointer/vep 降级开关）废弃并归档至 `archive/plugin-dsh-zero-patch/`（不维护、不参与发布），`dsh-prism-minimal.patch` 删除。
 - 原因：零补丁 B 架构在真实部署中持续出现链路断层（准入拒绝 `MODEL_DOES_NOT_SUPPORT_IMAGES`、密钥 env 注入、设置白名单等均需逐项修复，实际已不再是"零补丁"）；完整路线以 harness 官方 `ImageFallbackService` 接缝为准入点、以 `prism_see` 工具为模型入口，行为单一清晰（VEP/2 转换 + 原图保留 + UI 折叠/进度卡片），部署形态统一（补丁 + 插件），维护、测试与发布路径更简单（本机即 harness checkout，补丁可随仓库维护）。
 - 代价：依赖本地 harness checkout 补丁，上游 deepseek-harness 升级时需重新应用/适配（回退：`git apply -R` + 重建产物）；安装多一步（先补丁后插件）；未打补丁的部署保持官方拒绝行为（不可用）。
+
+### D18 自包含组合包路线：harness 零补丁（取代 D17 的补丁依赖）
+
+- 决策：2026-08-16 起，`packages/plugin-dsh` 改为**自包含 Cordis 组合包**，不再依赖任何 harness 补丁：纯文本模型图片准入改为**包装 `apiProxy.sessions.prompt`**（图片 prompt 转 VEP/2 证据文本 + 附件持久化路径指针后进上游，原图块不再保留——未打补丁的 `llm-deepseek` 序列化器会拒绝图片块），同时**保留 `imageFallback` 服务提供**（harness 具备该接缝时直接消费；与包装互为正反兜底、以 VEP 标记幂等防二次转换）；恢复**技能运行时注册**（`ctx.skills.register`，包内素材，不向 `~/.dsh/skills` 写副本）；Web 设置卡片在白名单未暴露时**降级为配置指引**（环境变量 / profile 行配置）；缺失密钥改为抛 `PrismConfigError` 直达客户端（不再伪装成"模型不支持图片"）。`harness-patch/dsh-prism-harness.patch` 降级为可选 UI 增强（原图展示 + VEP 折叠/进度卡片 + 设置白名单），非必需。
+- 原因：用户要求 harness 本体零影响——只添加、不修改不删除、上游更新不冲突、卸载插件不残留；补丁路线每次上游升级都要重打补丁并重建，且"卸载插件"不会回退补丁（残留）。自包含路线全部能力经 Cordis 条件注入挂载（tools / apiProxy+llm / skills 各自成组），fiber dispose 即全部回收；配置走 harness 官方通道（`installSettingsSection` 行配置 base 层 + 环境变量 + 设置文档）。
+- 代价：未打补丁时对话不再显示原图缩略图（消息内容为 VEP 证据文本 + 附件路径指针，模型可用 `prism_see` 对指针路径补查）；Web 设置卡片在未打补丁部署上不可编辑（仅指引）；包装 `sessions.prompt` 依赖 api-proxy 服务形状（`sessions.prompt` / `sessions.models`），上游若改变该形状需同步适配（与 D16 代价相同）；harness 会清洗子进程环境中的 `*_API_KEY` 类密钥（实测 DEEPSEEK_API_KEY 同样不透传），插件注入的非密钥 `VISION_*` 有效、密钥无效——模型直接运行 `vision.mjs` 的密钥走技能 `.env` 查找或 `prism_see`。

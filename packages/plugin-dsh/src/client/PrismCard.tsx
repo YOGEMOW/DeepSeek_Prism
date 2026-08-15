@@ -119,11 +119,26 @@ function PrismFieldRow({ id, label, hint, overridden, overriddenLabel, resetLabe
 /**
  * Render the DeepSeek Prism card.
  * @param props - locale copy, the card snapshot, and its form actions.
- * @returns the card, or nothing when the namespace is unavailable.
+ * @returns the form card, a guidance card when the namespace is not exposed
+ *   to this Web client, or nothing while the first answer is pending.
  */
 export function PrismCard(props: PrismCardProps) {
   const { t } = props
   const state = props.usePrismCard((snapshot: PrismCardState) => snapshot)
+  if (state.status === 'unavailable') {
+    // The deployment's api-proxy allowlist does not serve the namespace, so
+    // the form could never read or write; explain the channels that do work.
+    return (
+      <li className={css.card}>
+        <div className={css.guidance} role="status">
+          <span className={css.name}>{t('cardTitle')}</span>
+          <span className={css.description}>{t('cardUnavailable')}</span>
+          <p className={css.hint}>{t('cardUnavailableEnv')}</p>
+          <p className={css.hint}>{t('cardUnavailableRow')}</p>
+        </div>
+      </li>
+    )
+  }
   const disabled = !state.writable
   return (
     <PrismCardShell

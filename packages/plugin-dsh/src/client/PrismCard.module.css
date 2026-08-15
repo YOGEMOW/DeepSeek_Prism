@@ -273,3 +273,22 @@
   cursor: default;
   opacity: 0.5;
 }
+
+/* Guidance state: the namespace is not in the deployment's Web settings
+   allowlist, so the card explains the two configuration channels instead of
+   rendering a form whose writes would be rejected. */
+
+.guidance {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+}
+
+.guidance .description {
+  margin-bottom: 2px;
+}
+
+.guidance .hint + .hint {
+  margin-top: 2px;
+}

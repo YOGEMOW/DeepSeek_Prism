@@ -1,6 +1,6 @@
 {
   "name": "@yogemow/deepseek-prism-skill",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "DeepSeek Prism Codex Skill：为纯文本 DeepSeek 模型提供低 Token 识图证据包（VEP/1）。Install with `npx @yogemow/deepseek-prism-skill`.",
   "type": "module",
   "bin": {

@@ -28,6 +28,9 @@ export type PrismKey =
   | 'expand'
   | 'collapse'
   | 'unsaved'
+  | 'cardUnavailable'
+  | 'cardUnavailableEnv'
+  | 'cardUnavailableRow'
 
 export const zh: Record<PrismKey, string> = {
   cardTitle: 'DeepSeek Prism（识图）',
@@ -58,6 +61,9 @@ export const zh: Record<PrismKey, string> = {
   expand: '展开',
   collapse: '收起',
   unsaved: '有未保存的修改',
+  cardUnavailable: '当前 harness 未把 deepseek-prism 设置命名空间加入 Web 设置白名单（api-proxy），此卡片不可编辑；DeepSeek Prism 照常工作，改由下列方式配置。',
+  cardUnavailableEnv: '环境变量：SILICONFLOW_API_KEY（或 VISION_API_KEY）、VISION_BASE_URL、VISION_MODEL、VISION_REGION。',
+  cardUnavailableRow: '行配置：在 profile 的 cordis.patch.yml 中按 id 为 prism 行提供 config（apiKey / model / baseUrl / region），保存后重启。',
 }
 
 export const en: Record<PrismKey, string> = {
@@ -89,4 +95,7 @@ export const en: Record<PrismKey, string> = {
   expand: 'Expand',
   collapse: 'Collapse',
   unsaved: 'Unsaved changes',
+  cardUnavailable: 'This harness does not include the deepseek-prism settings namespace in the Web settings allowlist (api-proxy), so this card is read-only guidance. DeepSeek Prism keeps working; configure it through either channel below.',
+  cardUnavailableEnv: 'Environment variables: SILICONFLOW_API_KEY (or VISION_API_KEY), VISION_BASE_URL, VISION_MODEL, VISION_REGION.',
+  cardUnavailableRow: 'Row config: in your profile\'s cordis.patch.yml, patch the prism row by id with a config (apiKey / model / baseUrl / region), then restart.',
 }
