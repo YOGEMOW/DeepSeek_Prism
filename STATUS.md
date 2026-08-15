@@ -50,7 +50,7 @@
 
 ## 已完成
 
-- 发布 v0.7.0（2026-08-16）：git 提交 `f460e54` + tag v0.7.0 已推送、GitHub Release v0.7.0 已创建（附双包 tarball）、仓库 About 描述已更新、README 版本选择矩阵（含各版本 Release 链接）与 PLAN 设计路线已更新。按用户决定**不发布 npm 注册表、不重打包**：版本发布以 git tag + GitHub Release 为准，tarball 作为 Release 资产供按需安装。
+- 发布 v0.7.0（2026-08-16）：git 提交 `f460e54` + tag v0.7.0 已推送、GitHub Release v0.7.0 已创建（附双包 tarball）、仓库 About 描述已更新、README 版本选择矩阵（含各版本 Release 链接）与 PLAN 设计路线已更新。**npmjs 注册表已发布 `@yogemow/deepseek-prism-dsh` v0.6.1 与 v0.7.0**（latest=v0.7.0；用户 npmjs 登录 + 2FA 交互发布，未重新打包，直接上传 v0.6.1 Release 资产与 v0.7.0 既有 tarball）；README 安装说明已按版本写明差异（0.7.0 零补丁 / 0.6.1 实用版需补丁）。
 
 ## 进行中
 

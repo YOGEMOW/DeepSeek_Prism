@@ -26,17 +26,30 @@
 
 按平台分开发布两个包（版本选择见上表；GitHub Release 资产见 [Releases](https://github.com/YOGEMOW/DeepSeek_Prism/releases)）：
 
-- **DSH（DeepSeek Harness）**：`@yogemow/deepseek-prism-dsh`（自包含 Cordis 组合包，`prism_see` 工具 + 纯文本模型图片准入 VEP 降级 + 技能运行时注册 + 设置卡片）。**不需要对 deepseek-harness checkout 打任何补丁**——harness 侧零修改、上游更新零冲突、卸载零残留：
+- **DSH（DeepSeek Harness）**：`@yogemow/deepseek-prism-dsh`（npmjs 已发布 v0.6.1 与 v0.7.0）。两个版本的差别：
+
+  | 版本 | 定位 | 安装命令 | 前置要求 |
+  | --- | --- | --- | --- |
+  | **v0.7.0**（latest） | 零补丁版：`prism_see` 工具 + 纯文本模型图片准入 VEP 降级 + 技能运行时注册 + 设置卡片 | `dsh plugin --profile <name> add @yogemow/deepseek-prism-dsh` | **无**——harness 本体零改动、上游更新零冲突、卸载零残留 |
+  | **v0.6.1** | 实用版：原图保留展示 + VEP 折叠链接/识别进度卡片 + Web 设置卡片可编辑 | `dsh plugin --profile <name> add @yogemow/deepseek-prism-dsh@0.6.1` | 需应用 `harness-patch/dsh-prism-harness.patch` 并重建 host/client 产物 |
 
   ```powershell
-  # 1) 安装插件（源码 checkout 形态需与 deepseek-prism/ 相邻；tarball 形态包内已含 skill/ 素材）
-  dsh plugin --profile web add E:\Git\repositoris\DeepSeek_Prism\packages\plugin-dsh
+  # 1) 按名安装（默认 v0.7.0；指定版本加 @0.6.1）
+  dsh plugin --profile web add @yogemow/deepseek-prism-dsh
   # 2) 重启 web 服务；卸载：dsh plugin --profile web remove @yogemow/deepseek-prism-dsh
   ```
 
-  插件能力：模型可用 `prism_see` 工具按路径/URL 识图；对话直接上传图片时，纯文本模型自动把图片转为 VEP/2 证据文本入会话（原图持久化为附件并以路径指针告知模型，可对该路径补查）；`deepseek-prism` 技能随包运行时注册。配置三选一：Web 设置卡片（harness 白名单暴露该命名空间时）、profile 的 `cordis.patch.yml` 行配置、环境变量（`SILICONFLOW_API_KEY` / `VISION_BASE_URL` / `VISION_MODEL` / `VISION_REGION`）。详见 `packages/plugin-dsh/README.md`。
+  本地/离线安装（源码 checkout 形态需与 `deepseek-prism/` 相邻；tarball 形态包内已含 skill/ 素材）：
 
-  > `harness-patch/dsh-prism-harness.patch` 为可选增强（原图展示 + 前端 VEP 折叠/进度卡片，应用后设置卡片可编辑），非必需；`archive/plugin-dsh-zero-patch/` 为旧「零补丁 B 架构」的归档参考（不维护、不参与发布）。
+  ```powershell
+  dsh plugin --profile web add E:\Git\repositoris\DeepSeek_Prism\packages\plugin-dsh
+  # 或
+  dsh plugin --profile web add https://github.com/YOGEMOW/DeepSeek_Prism/releases/download/v0.7.0/deepseek-prism-dsh-0.7.0.tgz
+  ```
+
+  插件能力（v0.7.0）：模型可用 `prism_see` 工具按路径/URL 识图；对话直接上传图片时，纯文本模型自动把图片转为 VEP/2 证据文本入会话（原图持久化为附件并以路径指针告知模型，可对该路径补查）；`deepseek-prism` 技能随包运行时注册。配置三选一：Web 设置卡片（harness 白名单暴露该命名空间时）、profile 的 `cordis.patch.yml` 行配置、环境变量（`SILICONFLOW_API_KEY` / `VISION_BASE_URL` / `VISION_MODEL` / `VISION_REGION`）。详见 `packages/plugin-dsh/README.md`。
+
+  > `harness-patch/dsh-prism-harness.patch` 为可选增强（原图展示 + 前端 VEP 折叠/进度卡片，应用后设置卡片可编辑），仅 v0.6.1 需要；`archive/plugin-dsh-zero-patch/` 为旧「零补丁 B 架构」的归档参考（不维护、不参与发布）。
 
 - **Codex**：`@yogemow/deepseek-prism-skill`（含一键安装 CLI）：
 

@@ -16,6 +16,7 @@
   - 文档同步：`packages/plugin-dsh/README.md`、`harness-patch/README.md`（补丁降级为可选 UI 增强）、根 README、PROJECT、STATUS、DECISIONS（D18）。
 - **deepseek-harness checkout 回退补丁**：15 处修改全部 revert（git checkout 上游），新增的 `message-vep.client.spec.tsx` 与两个遗留测试日志删除，host/client 产物重建为上游基线；`git status` 干净，上游更新不再冲突。
 - **重启验证（2026-08-16）**：重启后实测——`prism_see` 工具注册（新描述）、`deepseek-prism` 技能随包运行时注册进入技能目录、settings.yaml 的 `deepseek-prism.apiKey` 继续生效；`prism_see` 真实冒烟返回正确 VEP/2 证据（SiliconFlow GLM-4.5V，sample-error-log.png → error 模式）；对话发图实测通过（图片未经拒绝，自动转为附件路径指针 + VEP/2 证据 + 用量行，`tokens=1013` 为 512→1024 档自适应预算两轮合计）。
+- **npmjs 发布（2026-08-16）**：`@yogemow/deepseek-prism-dsh` 发布 npmjs 注册表 v0.6.1（实用版，需 harness 补丁）与 v0.7.0（零补丁版，latest）；README 安装说明按版本写明差异，支持 `dsh plugin add @yogemow/deepseek-prism-dsh`（默认 0.7.0）与 `@yogemow/deepseek-prism-dsh@0.6.1`。
 
 ## [0.6.1] 2026-08-15
 
