@@ -1,5 +1,17 @@
 # CHANGELOG.md
 
+## [0.7.1] 2026-08-16
+
+### Changed
+
+- **零补丁版补发（LICENSE）**：v0.7.0 内容不变，随包分发 MIT LICENSE 全文（双包目录补 LICENSE 并纳入 `files`）；npmjs 发布 `@yogemow/deepseek-prism-dsh@0.7.1`（latest）；GitHub Release v0.7.1（附 tarball）；README 版本矩阵与安装说明更新为 v0.7.1 / v0.6.2。
+
+## [0.6.2] 2026-08-16
+
+### Changed
+
+- **实用版补发（LICENSE）**：v0.6.1 内容不变（基于 v0.6.1 tag 分支，git tag v0.6.2），随包分发 MIT LICENSE 全文；npmjs 发布 `@yogemow/deepseek-prism-dsh@0.6.2`；GitHub Release v0.6.2（附 tarball）。
+
 ## [0.7.0] 2026-08-16
 
 ### Changed
