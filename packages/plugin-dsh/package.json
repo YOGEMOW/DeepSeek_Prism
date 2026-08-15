@@ -1,6 +1,6 @@
 {
   "name": "@yogemow/deepseek-prism-dsh",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "DeepSeek Prism for DeepSeek Harness (DSH): prism_see 工具 + 图片准入 VEP 降级（imageFallback 接缝）+ 设置卡片（视觉 API 密钥/模型/Base URL/区域）。Requires harness-patch/dsh-prism-harness.patch.",
   "type": "module",
   "main": "lib/index.js",
@@ -32,7 +32,8 @@
     "lib",
     "skill",
     "cordis.patch.yml",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsdown",
