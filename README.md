@@ -6,9 +6,9 @@
 
 | 版本 | 定位 | 说明 |
 | --- | --- | --- |
-| **v0.7.0** | **零补丁版** | DSH 当前主线：自包含 Cordis 组合包，`prism_see` 工具 + 纯文本模型图片准入 VEP 降级 + 技能运行时注册 + 设置卡片；harness 本体零改动、上游更新零冲突、卸载零残留 |
-| **v0.6.1** | **实用版** | DSH 完整 UI 体验：原图保留展示 + VEP 折叠链接/识别进度卡片 + Web 设置卡片可编辑；需应用 `harness-patch/dsh-prism-harness.patch`（可选增强） |
-| **v0.2.0** | **Codex 推荐 skills 版** | Codex 平台的技能本体（SKILL.md + `scripts/vision.mjs` + references），安装到 `~/.codex/skills/deepseek-prism` |
+| **[v0.7.0](https://github.com/YOGEMOW/DeepSeek_Prism/releases/tag/v0.7.0)** | **零补丁版** | DSH 当前主线：自包含 Cordis 组合包，`prism_see` 工具 + 纯文本模型图片准入 VEP 降级 + 技能运行时注册 + 设置卡片；harness 本体零改动、上游更新零冲突、卸载零残留 |
+| **[v0.6.1](https://github.com/YOGEMOW/DeepSeek_Prism/releases/tag/v0.6.1)** | **实用版** | DSH 完整 UI 体验：原图保留展示 + VEP 折叠链接/识别进度卡片 + Web 设置卡片可编辑；需应用 `harness-patch/dsh-prism-harness.patch`（可选增强） |
+| **[v0.2.0](https://github.com/YOGEMOW/DeepSeek_Prism/releases/tag/v0.2.0)** | **Codex 推荐 skills 版** | Codex 平台的技能本体（SKILL.md + `scripts/vision.mjs` + references），安装到 `~/.codex/skills/deepseek-prism` |
 
 ## 功能
 

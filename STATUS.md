@@ -3,7 +3,7 @@
 ## 已完成
 
 - 重启验证（2026-08-16）：零补丁链路实测通过——重启后 `prism_see` 工具已注册（新描述）、`deepseek-prism` 技能随包运行时注册进入技能目录、设置文档密钥正确解析（settings.yaml 的 `deepseek-prism.apiKey` 继续生效）；`prism_see` 真实冒烟返回正确 VEP/2 证据（SiliconFlow GLM-4.5V）；**对话发图实测通过**：上传 `屏幕截图 2022-06-14 002808.jpg`（434×471、49816 B）→ 未被 `MODEL_DOES_NOT_SUPPORT_IMAGES` 拒绝，自动转为附件路径指针（`~/.dsh/attachments/v1/objects/a3/a30015f2…`，与 attachment-local v1 布局一致）+ VEP/2 证据（`m=general`、`Cartoon FX Free…` 内容正确、`[截断]` 为字段预算标记、`tokens=1013` 为 512→1024 档自适应升级两轮合计）+ 用量行 `cost=0.000476`；宿主注入的非密钥 `VISION_*`（model/baseUrl/region）可到达模型子进程，harness 会清洗子进程环境中的 `*_API_KEY` 类密钥（实测 DEEPSEEK_API_KEY 也不透传），已修正插件 JSDoc/README 的注入说明（模型直接运行 vision.mjs 的密钥走技能 `.env` 或 prism_see）。
-- 自包含组合包路线（2026-08-16，未发布）：DSH 插件重构为 harness 零补丁——纯文本模型图片准入改为包装 `apiProxy.sessions.prompt`（图片转 VEP/2 证据文本 + 附件路径指针，原图块不再保留）+ 保留 `imageFallback` 服务提供（幂等互兜）；恢复技能运行时注册（`ctx.skills.register`，包内素材，不向 `~/.dsh/skills` 写副本）；缺失密钥抛 `PrismConfigError` 直达客户端；Web 设置卡片在白名单未暴露时降级为配置指引（环境变量 / profile 行配置）；配置三通道（设置卡片 / 行配置 / 环境变量）；`apply` 按能力分组条件注入、全部注册挂 fiber（dispose 零残留）；插件测试重写 29 项、仓库全量 75 项全部通过；文档同步（README/harness-patch/PROJECT/STATUS/DECISIONS D18/CHANGELOG）。
+- 自包含组合包路线（2026-08-16，随 v0.7.0 发布）：DSH 插件重构为 harness 零补丁——纯文本模型图片准入改为包装 `apiProxy.sessions.prompt`（图片转 VEP/2 证据文本 + 附件路径指针，原图块不再保留）+ 保留 `imageFallback` 服务提供（幂等互兜）；恢复技能运行时注册（`ctx.skills.register`，包内素材，不向 `~/.dsh/skills` 写副本）；缺失密钥抛 `PrismConfigError` 直达客户端；Web 设置卡片在白名单未暴露时降级为配置指引（环境变量 / profile 行配置）；配置三通道（设置卡片 / 行配置 / 环境变量）；`apply` 按能力分组条件注入、全部注册挂 fiber（dispose 零残留）；插件测试重写 29 项、仓库全量 75 项全部通过；文档同步（README/harness-patch/PROJECT/STATUS/DECISIONS D18/CHANGELOG）。
 - deepseek-harness checkout 回退补丁（2026-08-16）：15 处修改 revert 至上游、新增 spec 与遗留日志删除、host/client 产物重建为上游基线，`git status` 干净；harness 侧零残留、上游更新零冲突。
 - 发布 v0.6.1（2026-08-15）：用户实测通过（图片准入降级链路恢复：`【DeepSeek Prism 识别：…】` VEP/2 证据 + 用量行正常，前端折叠 bundle 已在运行中服务器生效）；CHANGELOG 追加 0.6.1 条目（部署故障排查与跨 realm 写入附注）；双包（`@yogemow/deepseek-prism-dsh` / `@yogemow/deepseek-prism-skill`）发布 GitHub Packages 并作为 GitHub Release v0.6.1 资产。
 - 主线混合路线落地（2026-08-15）：`packages/plugin-dsh` 新增 **VEP 转换降级模式**（设置开关：`pointer` 零补丁默认 / `vep` 需最小补丁）——vep 模式在准入时直接生成 VEP/2 文本（八模式意图、自适应预算、双图 diff、用量/余额开关）并保留原图附件；新增 `harness-patch/dsh-prism-minimal.patch`（设置白名单一行 + llm-deepseek 图片剥离 + ui-conversation 折叠/执行链信号，官方基线验证可应用）；`dsh-plugin/` 转为**技术储备**（参考实现，README 标注，不参与发布）；Codex skills（`packages/skill`）保持不变；测试：plugin-dsh 20 项（新增 vep 模式用例）、dsh-plugin 15 项、skill 49 项全部通过。
@@ -48,11 +48,15 @@
 - 图片准入接缝接入（2026-08-15）：重启后用户仍报「该模型不支持识图」——api-proxy 图片准入（纯文本模型 + 图片）要求 `imageFallback` 服务（harness 官方接缝），缺失即拒绝 `MODEL_DOES_NOT_SUPPORT_IMAGES`，旧实现只包装 `sessions.prompt` 未注册接缝。修复：插件 `ctx.provide("imageFallback")`（准入层直接降级，与包装互为兜底；vep 对已降级内容原样返回防二次转换；失败保留原 content 由序列化器剥离兜底；模态判定失败/缺失保守按纯文本降级）；vep 原图块改携原始 base64（兼容 `durablePromptContent` 持久化）。**需重启 harness 生效**。插件测试 37 项、仓库全量 70 项通过。
 - 部署故障修复（2026-08-15，v0.6.0 之后）：用户报「插件无法正常使用」——诊断确认插件本体已加载（`prism_see` 工具、settings 命名空间、`imageFallback` 接缝均在线，harness 补丁已生效），根因是 `~/.dsh/settings.yaml` 的 `deepseek-prism.apiKey` 存了 DeepSeek API Key（与 `DEEPSEEK_API_KEY` 相同），而视觉提供方是 SiliconFlow，插件按 `settings.apiKey` 优先取到错误密钥 → SiliconFlow HTTP 401 "Token is invalid"。正确的 `SILICONFLOW_API_KEY` 早已在 `.credentials.yaml`，只是从未被使用。修复：通过 settings 服务（一次性动态插件，null-prototype 对象跨 sandbox realm 写入）将 `deepseek-prism.apiKey` 更新为凭据库中的 SiliconFlow Key；`prism_see` 实测恢复（返回 VEP/2 证据）。注：动态插件宿主代码运行在 `node:vm` 沙箱 realm，直接传对象字面量会被宿主 `isPlainObject` 拒绝，需用 `Object.create(null)` 构造补丁对象。
 
+## 已完成
+
+- 发布 v0.7.0（2026-08-16）：git 提交 `f460e54` + tag v0.7.0 已推送、GitHub Release v0.7.0 已创建（附双包 tarball）、仓库 About 描述已更新、README 版本选择矩阵（含各版本 Release 链接）与 PLAN 设计路线已更新。按用户决定**不发布 npm 注册表、不重打包**：版本发布以 git tag + GitHub Release 为准，tarball 作为 Release 资产供按需安装。
+
 ## 进行中
 
-- 发布 v0.7.0 收尾：git 提交 `f460e54` + tag v0.7.0 已推送、GitHub Release v0.7.0 已创建（附双包 tarball）、仓库 About 描述已更新、README 版本选择矩阵与 PLAN 设计路线已更新。**GitHub Packages 的 npm 发布待用户 PAT**（沙箱无 `NODE_AUTH_TOKEN`，`gh auth token` 为 OAuth token 无 `write:packages` 权限 → 403；按用户要求不重打包不重测，由用户以 classic PAT 对现有 `dist/*.tgz` 直接 `npm publish`）。
+- 无（v0.7.0 零补丁版已发布并重启验证通过）。
 
 ## 待处理
 
-- 用户侧补完 GitHub Packages 发布（classic PAT 直接 `npm publish` 现有 dist tarball）；Codex 技能副本按需同步（skill 包内容未变）。
+- Codex 技能副本按需同步（skill 包内容未变）。
 - Keychain / 自动裁剪 / 更多样例（按需）。
