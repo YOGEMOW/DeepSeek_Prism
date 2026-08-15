@@ -51,11 +51,11 @@
 ## 已完成
 
 - 发布 v0.7.0（2026-08-16）：git 提交 `f460e54` + tag v0.7.0 已推送、GitHub Release v0.7.0 已创建（附双包 tarball）、仓库 About 描述已更新、README 版本选择矩阵（含各版本 Release 链接）与 PLAN 设计路线已更新。**npmjs 注册表已发布 `@yogemow/deepseek-prism-dsh` v0.6.1 与 v0.7.0**（latest=v0.7.0；用户 npmjs 登录 + 2FA 交互发布，未重新打包，直接上传 v0.6.1 Release 资产与 v0.7.0 既有 tarball）；README 安装说明已按版本写明差异（0.7.0 零补丁 / 0.6.1 实用版需补丁）。
-- 补发版本（2026-08-16）：LICENSE 补发——双包目录补 MIT LICENSE 全文并纳入 `files`；发布 `@yogemow/deepseek-prism-dsh` **v0.6.2**（实用版，v0.6.1 tag 分支 + LICENSE，git tag v0.6.2）与 **v0.7.1**（零补丁版，master 0.7.1，git tag v0.7.1）；GitHub Release v0.6.2 / v0.7.1 已创建（附 tarball）；README 版本矩阵与安装说明更新为 v0.7.1 / v0.6.2。npmjs 发布由用户 2FA 交互执行（命令见会话记录）。
+- 补发版本（2026-08-16）：LICENSE 补发——双包目录补 MIT LICENSE 全文并纳入 `files`；发布 `@yogemow/deepseek-prism-dsh` **v0.6.2**（实用版，v0.6.1 tag 分支 + LICENSE，git tag v0.6.2）与 **v0.7.1**（零补丁版，master 0.7.1，git tag v0.7.1）；GitHub Release v0.6.2 / v0.7.1 已创建（附 tarball）；README 版本矩阵与安装说明更新为 v0.7.1 / v0.6.2。**npmjs 已发布**（用户 2FA 交互）：版本列表 `[0.6.1, 0.6.2, 0.7.0, 0.7.1]`，`latest=v0.7.1`，license MIT。
 
 ## 进行中
 
-- 无（v0.7.1 / v0.6.2 补发版本已就绪，npmjs 发布待用户执行）。
+- 无（v0.7.1 / v0.6.2 补发版本已全部发布并验证）。
 
 ## 待处理
 
