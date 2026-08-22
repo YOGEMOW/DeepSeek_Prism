@@ -1,5 +1,11 @@
 # CHANGELOG.md
 
+## [0.8.1] 2026-08-22
+
+### Fixed
+
+- **设置卡片 keyed slot 适配**：0.8.0 的设置卡片注册与 `deepseek-harness` 0.1.0-rc.8 客户端 slot 系统不兼容——`settings.plugin.item` 已改为 keyed 槽，注册需 `key`；0.8.0 用 `id` 导致「键控槽 settings.plugin.item 需要 options.key」加载失败。0.8.1 改为 `key: 'deepseek-prism'` 并去掉 keyed 槽不支持的 `order`。功能与 0.8.0 一致。
+
 ## [0.8.0] 2026-08-16
 
 ### Added

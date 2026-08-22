@@ -56,11 +56,11 @@
 
 ## 进行中
 
-- 0.8.0 统一版：已实现并提交（插件 `b994717`、文档 `0b9de5a`）；harness 重建已执行（补丁产物验证通过）；`git tag v0.8.0` + GitHub Release v0.8.0 已创建（附 0.8.0 tarball）；**npmjs 发布待用户 2FA**。
+- 0.8.1（keyed slot 修复）：`v0.8.1` tag + GitHub Release 已创建（附 0.8.1 tarball）+ CHANGELOG/STATUS 已更新；**npmjs 发布待用户 2FA**（0.8.0 的卡片注册 bug 由 0.8.1 覆盖）。
 
 ## 待处理
 
-- **部署已就绪**：0.8.0 已 npmjs 发布（用户 2FA 后），本机 web profile 已升级到 `@yogemow/deepseek-prism-dsh@0.8.0` 且 profile `cordis.patch.yml` 设 `deployMode: patch` + `visionModelHandling: native`（harness checkout 已应用 0.8.0 补丁并重建）；**待重启 dsh web 服务**并验证（设置卡片含 Provider/deepseek、发图准入、视觉模型 native/prism）。
-- 客户端卡片在新 harness 的运行兼容依赖 `ui-slots`/`locale`/`settingsScope` 服务名一致（`ui-slots` 仍在，需部署实测）；插件本地 typecheck 需恢复 profile 的 `@deepseek-ai` 包目录（`dsh plugin remove` 清空了它）。
+- **npmjs 发布 0.8.1**（用户 2FA：`npm publish E:\Git\repositoris\DeepSeek_Prism\dist-npm\0.8.1\deepseek-prism-dsh-0.8.1.tgz --registry https://registry.npmjs.org/ --access public`，从仓库外目录执行）。
+- **重启 dsh web 服务**并验证（本机 profile 已装 0.8.1 本地构建；设置卡片应正常显示可编辑，含 Provider/deepseek、视觉模型处理、部署模式）。
 - Codex 技能副本按需同步（skill 包内容未变）。
 - Keychain / 自动裁剪 / 更多样例（按需）。
