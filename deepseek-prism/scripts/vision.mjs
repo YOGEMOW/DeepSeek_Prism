@@ -123,6 +123,18 @@ export const PROVIDERS = [
     priority: 20,
     notes: "免费计划",
   },
+  {
+    id: "deepseek",
+    name: "DeepSeek (Vision Exp)",
+    region: "cn",
+    baseUrl: "https://api.deepseek.com/v1",
+    apiKeyEnv: "DEEPSEEK_API_KEY",
+    defaultModel: "deepseek-v4-flash-vision-exp",
+    supportsDetail: true,
+    outputLimit: 8192,
+    priority: 15,
+    notes: "DeepSeek 原生视觉模型（deepseek-v4-flash-vision-exp）",
+  },
 ];
 
 const MIME = {

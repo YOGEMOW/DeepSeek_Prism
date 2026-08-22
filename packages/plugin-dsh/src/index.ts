@@ -45,16 +45,25 @@ export const name = 'deepseek-prism'
 /** Plugin row config: deployment defaults overlaid under the user settings document. */
 export interface Config {
   apiKey?: string
+  /** Vision provider id: siliconflow|zhipu|modelscope|alibaba|openrouter|groq|deepseek|custom. */
+  provider?: string
   model?: string
   baseUrl?: string
   region?: 'cn' | 'global'
+  /** Deployment shape: `zero-patch` drops originals (no harness patch); `patch` keeps them (needs harness patch). */
+  deployMode?: 'zero-patch' | 'patch'
+  /** For a vision-capable session model: `native` passes raw images through; `prism` converts to VEP (cheaper). */
+  visionModelHandling?: 'native' | 'prism'
 }
 
 export const Config = z.object({
   apiKey: z.string().role('secret'),
+  provider: z.string(),
   model: z.string(),
   baseUrl: z.string(),
   region: z.union([z.const('cn'), z.const('global')]),
+  deployMode: z.union([z.const('zero-patch'), z.const('patch')]),
+  visionModelHandling: z.union([z.const('native'), z.const('prism')]),
 })
 
 /** Settings namespace key of this plugin (section in `$DSH_HOME/settings.yaml`). */
@@ -64,11 +73,27 @@ export const DEFAULT_MODEL = 'zai-org/GLM-4.5V'
 export const DEFAULT_BASE_URL = 'https://api.siliconflow.cn/v1'
 export const DEFAULT_MAX_CHARS = 520
 
+/** Vision provider ids selectable from the settings card (mirrors vision.mjs PROVIDERS). */
+export const VISION_PROVIDER_IDS = [
+  'siliconflow', 'zhipu', 'modelscope', 'alibaba', 'openrouter', 'groq', 'deepseek', 'custom',
+] as const
+
+/** Provider defaults for model/baseUrl/keyEnv when `provider` is selected (settings/env still win). */
+const VISION_PROVIDER_DEFAULTS: Readonly<Record<string, { baseUrl: string; model: string; apiKeyEnv: string }>> = {
+  siliconflow: { baseUrl: DEFAULT_BASE_URL, model: DEFAULT_MODEL, apiKeyEnv: 'SILICONFLOW_API_KEY' },
+  zhipu: { baseUrl: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4.6v-flash', apiKeyEnv: 'ZHIPU_API_KEY' },
+  modelscope: { baseUrl: 'https://api-inference.modelscope.cn/v1', model: 'Qwen/Qwen3-VL-8B-Instruct', apiKeyEnv: 'MODELSCOPE_API_KEY' },
+  alibaba: { baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen3-vl-flash', apiKeyEnv: 'DASHSCOPE_API_KEY' },
+  openrouter: { baseUrl: 'https://openrouter.ai/api/v1', model: 'nvidia/nemotron-nano-12b-v2-vl:free', apiKeyEnv: 'OPENROUTER_API_KEY' },
+  groq: { baseUrl: 'https://api.groq.com/openai/v1', model: 'qwen/qwen3.6-27b', apiKeyEnv: 'GROQ_API_KEY' },
+  deepseek: { baseUrl: 'https://api.deepseek.com/v1', model: 'deepseek-v4-flash-vision-exp', apiKeyEnv: 'DEEPSEEK_API_KEY' },
+}
+
 /** Default vision question for unattended admission conversion (no user focus yet). */
 const FALLBACK_QUESTION = '完整精确提取图片中的全部文本内容，保留原文、顺序与换行；若图片没有文本则描述最重要的可见内容。'
 
 /** Error shown when no vision credential is available anywhere. */
-const MISSING_KEY_MESSAGE = 'DeepSeek Prism 未配置视觉 API 密钥：请设置环境变量 SILICONFLOW_API_KEY / VISION_API_KEY，'
+const MISSING_KEY_MESSAGE = 'DeepSeek Prism 未配置视觉 API 密钥：请设置对应 Provider 的环境变量（如 SILICONFLOW_API_KEY / DEEPSEEK_API_KEY / VISION_API_KEY），'
   + '或在 profile 的 cordis.patch.yml 中为 prism 行提供 config.apiKey。'
 
 /**
@@ -128,6 +153,8 @@ export interface PrismResolvedSettings {
   baseUrl: string
   model: string
   region: 'cn' | 'global'
+  deployMode: 'zero-patch' | 'patch'
+  visionModelHandling: 'native' | 'prism'
   showUsage: boolean
   showBalance: boolean
 }
@@ -135,9 +162,12 @@ export interface PrismResolvedSettings {
 /** Resolved `deepseek-prism` settings section. */
 export interface PrismSettings {
   apiKey?: string
+  provider?: string
   model?: string
   baseUrl?: string
   region?: 'cn' | 'global'
+  deployMode?: 'zero-patch' | 'patch'
+  visionModelHandling?: 'native' | 'prism'
   showUsage?: boolean
   showBalance?: boolean
 }
@@ -145,20 +175,33 @@ export interface PrismSettings {
 /** User settings schema. The API key is a write-only secret: it never rides a response. */
 const SettingsSchema = z.object({
   apiKey: z.string().role('secret'),
-  model: z.string().default(DEFAULT_MODEL),
-  baseUrl: z.string().default(DEFAULT_BASE_URL),
+  provider: z.string().default('siliconflow'),
+  model: z.string(),
+  baseUrl: z.string(),
   region: z.union([z.const('cn'), z.const('global')]).default('cn'),
+  deployMode: z.union([z.const('zero-patch'), z.const('patch')]).default('zero-patch'),
+  visionModelHandling: z.union([z.const('native'), z.const('prism')]).default('native'),
   showUsage: z.boolean().default(true),
   showBalance: z.boolean().default(false),
 })
 
-/** Resolve the vision endpoint from the settings document, env, or defaults. */
+/** Defaults backing one provider id; keyEnv is used when `apiKey` is not configured. */
+function providerDefault(id: string): { baseUrl: string; model: string; apiKeyEnv: string } {
+  return VISION_PROVIDER_DEFAULTS[id] ?? {
+    baseUrl: DEFAULT_BASE_URL, model: DEFAULT_MODEL, apiKeyEnv: 'VISION_API_KEY',
+  }
+}
+
+/** Resolve the vision endpoint from the provider/settings document, env, or defaults. */
 export function resolvePrismSettings(section: PrismSettings | undefined): PrismResolvedSettings {
+  const provider = providerDefault(section?.provider ?? 'siliconflow')
   return {
-    apiKey: section?.apiKey || process.env.SILICONFLOW_API_KEY || process.env.VISION_API_KEY || '',
-    baseUrl: (section?.baseUrl || process.env.VISION_BASE_URL || DEFAULT_BASE_URL).replace(/\/+$/, ''),
-    model: section?.model || process.env.VISION_MODEL || DEFAULT_MODEL,
+    apiKey: section?.apiKey || process.env[provider.apiKeyEnv] || process.env.SILICONFLOW_API_KEY || process.env.VISION_API_KEY || '',
+    baseUrl: (section?.baseUrl || process.env.VISION_BASE_URL || provider.baseUrl).replace(/\/+$/, ''),
+    model: section?.model || process.env.VISION_MODEL || provider.model,
     region: section?.region ?? 'cn',
+    deployMode: section?.deployMode ?? 'zero-patch',
+    visionModelHandling: section?.visionModelHandling ?? 'native',
     showUsage: section?.showUsage ?? true,
     showBalance: section?.showBalance ?? false,
   }
@@ -423,7 +466,8 @@ export async function transformImageContent(
   const imageParts = content.filter(
     (part): part is Extract<PrismPromptPart, { type: 'image' }> => part.type === 'image',
   )
-  const pointers = await persistImagePointers(ctx, imageParts)
+  const keepOriginals = resolved.deployMode === 'patch'
+  const pointers = keepOriginals ? [] : await persistImagePointers(ctx, imageParts)
   // The user's accompanying text IS the intent: mode inference runs on it
   // alone (the generic extraction prompt would otherwise dominate the
   // keywords), while the full question still carries it to the model.
@@ -450,7 +494,9 @@ export async function transformImageContent(
       type: 'text',
       text: `【DeepSeek Prism 对比：${label(0)} vs ${label(1)}】\n${vision.toVep(result, maxChars)}${usageLine}`,
     }
-    return [...textParts, ...pointers, diffPart]
+    return keepOriginals
+      ? [...textParts, ...imageParts, diffPart]
+      : [...textParts, ...pointers, diffPart]
   }
 
   // Per-image recognition: each image becomes its own VEP/2 block.
@@ -480,7 +526,9 @@ export async function transformImageContent(
   const recognizedParts = recognized.map(entry => entry.part.type === 'text' && usageLine !== ''
     ? { ...entry.part, text: entry.part.text + usageLine }
     : entry.part)
-  return [...textParts, ...pointers, ...recognizedParts]
+  return keepOriginals
+    ? [...textParts, ...imageParts, ...recognizedParts]
+    : [...textParts, ...pointers, ...recognizedParts]
 }
 
 /** Minimal face of the api-proxy service (`ctx.get('apiProxy')`). */
@@ -549,6 +597,7 @@ async function isCurrentModelTextOnly(ctx: Context, sessionId: string): Promise<
 export function installPromptDegradation(
   ctx: Context,
   convert: (content: readonly PrismPromptPart[]) => Promise<readonly PrismPromptPart[]>,
+  sourceOf: () => PrismSettings,
 ): (() => void) | undefined {
   const apiProxy = ctx.get('apiProxy') as ApiProxyFace | undefined
   const sessions = apiProxy?.sessions
@@ -567,7 +616,12 @@ export function installPromptDegradation(
     } catch {
       textOnly = true
     }
-    if (!textOnly) return callOriginal(request)
+    // A vision-capable model passes through untouched unless the deployment
+    // opted into prism conversion (cheaper/compact evidence); a text-only
+    // model always converts (the harness refuses raw images for it).
+    if (!textOnly && resolvePrismSettings(sourceOf()).visionModelHandling !== 'prism') {
+      return callOriginal(request)
+    }
     try {
       const converted = await convert(content)
       return await callOriginal({ ...request, payload: { ...request.payload, content: converted } })
@@ -672,7 +726,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   ctx.inject(['apiProxy', 'llm'], (gatewayCtx) => {
     const convert = (content: readonly PrismPromptPart[]): Promise<readonly PrismPromptPart[]> =>
       transformImageContent(gatewayCtx, content, sourceOf)
-    gatewayCtx.effect(() => installPromptDegradation(gatewayCtx, convert) ?? (() => {}))
+    gatewayCtx.effect(() => installPromptDegradation(gatewayCtx, convert, sourceOf) ?? (() => {}))
     gatewayCtx.provide('imageFallback', { transformImages: convert })
   })
 

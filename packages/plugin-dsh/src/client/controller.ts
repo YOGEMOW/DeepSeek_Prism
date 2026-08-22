@@ -13,9 +13,12 @@ export const PRISM_NAMESPACE = 'deepseek-prism'
 /** The section fields this card edits. */
 export interface PrismSettings {
   apiKey?: string
+  provider?: string
   model?: string
   baseUrl?: string
   region?: string
+  deployMode?: string
+  visionModelHandling?: string
   showUsage?: boolean
   showBalance?: boolean
 }
@@ -58,6 +61,9 @@ export interface PrismCardState {
   model: FieldView
   baseUrl: FieldView
   region: FieldView
+  provider: FieldView
+  deployMode: FieldView
+  visionModelHandling: FieldView
 }
 
 /** The write actions the card's slot entry injects. */
@@ -212,6 +218,9 @@ export class PrismCardController {
       model: this.field('model', value, user),
       baseUrl: this.field('baseUrl', value, user),
       region: this.field('region', value, user),
+      provider: this.field('provider', value, user),
+      deployMode: this.field('deployMode', value, user),
+      visionModelHandling: this.field('visionModelHandling', value, user),
     }
   }
 

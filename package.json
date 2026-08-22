@@ -1,7 +1,7 @@
 {
   "name": "deepseek-prism-repo",
   "private": true,
-  "version": "0.7.1",
+  "version": "0.8.0",
   "description": "DeepSeek Prism 仓库根：Codex Skill 与 DeepSeek Harness 插件双包发布",
   "type": "module",
   "workspaces": [

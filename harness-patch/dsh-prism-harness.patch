@@ -1,10 +1,10 @@
 diff --git a/packages/client/ui-conversation/src/client/chat/ChatView.module.css b/packages/client/ui-conversation/src/client/chat/ChatView.module.css
-index d16608c856..bd3f6d27a5 100644
+index 73fa688f95..eed8e05ad9 100644
 --- a/packages/client/ui-conversation/src/client/chat/ChatView.module.css
 +++ b/packages/client/ui-conversation/src/client/chat/ChatView.module.css
-@@ -190,3 +190,40 @@
- .toBottom:hover {
-   background: var(--dsw-alias-button-floating-hover);
+@@ -200,3 +200,40 @@
+ .modalAction {
+   min-width: 72px;
  }
 +
 +/* Image-recognition execution-chain row: visible while the send RPC runs the
@@ -44,21 +44,21 @@ index d16608c856..bd3f6d27a5 100644
 +  color: var(--dsw-alias-label-tertiary);
 +}
 diff --git a/packages/client/ui-conversation/src/client/chat/ChatView.tsx b/packages/client/ui-conversation/src/client/chat/ChatView.tsx
-index 58e63b312f..e414a5a723 100644
+index 80f9bc2d73..881b12228b 100644
 --- a/packages/client/ui-conversation/src/client/chat/ChatView.tsx
 +++ b/packages/client/ui-conversation/src/client/chat/ChatView.tsx
-@@ -14,7 +14,7 @@
+@@ -15,7 +15,7 @@
  
- import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
  import type { ConversationTimelineSnapshot } from '@deepseek-ai/dsh-client-runtime/client'
--import { IconChevronDownOutline14 } from '@deepseek-ai/dsh-client-ui-primitives'
-+import { IconChevronDownOutline14, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
- import type { ChatViewSlotProps } from '../contract/slots.ts'
+-import { Button, IconChevronDownOutline14, Modal } from '@deepseek-ai/dsh-client-ui-primitives'
++import { Button, IconChevronDownOutline14, Modal, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { ChatViewSlotProps, RenderMessageImages } from '../contract/slots.ts'
  import { PendingSteeringBubble } from './MessageItem.tsx'
  import { ChatNodeSeat } from './ChatNodeSeat.tsx'
-@@ -23,6 +23,27 @@ import css from './ChatView.module.css'
- 
- const FOLLOW_THRESHOLD = 24
+@@ -29,6 +29,27 @@ function scrollerOf(from: HTMLElement): HTMLElement {
+   return (from.closest('[data-conversation-scroll]')) ?? from
+ }
  
 +/**
 + * Execution-chain row shown while image prompt admission runs the vision
@@ -81,10 +81,10 @@ index 58e63b312f..e414a5a723 100644
 +  )
 +}
 +
- /** Active column host when present; otherwise the view-local scroller. */
- function scrollerOf(from: HTMLElement): HTMLElement {
-   return (from.closest('[data-conversation-scroll]')) ?? from
-@@ -144,13 +165,17 @@ function TurnStatus({ startTime, t }: {
+ interface PagingAnchor {
+   /** Stable node/call identity, independent of boundary-spanning group keys. */
+   key: string
+@@ -156,13 +177,17 @@ function TurnStatus({ startTime, t }: {
   * ordered business Node crosses the keyed renderer seat.
   */
  export function ChatView({
@@ -103,21 +103,21 @@ index 58e63b312f..e414a5a723 100644
    // Workspace root off the session list row: path summaries display relative to it.
    const cwd = useSessions(s => s.byId[sessionId]?.cwd)
    const running = useSession(s => s.running)
-@@ -404,6 +429,7 @@ export function ChatView({
-           {pendingSteering.map(item => (
-             <PendingSteeringBubble key={item.id} content={item.content} loadImage={loadImage} t={t} />
+@@ -459,6 +484,7 @@ export function ChatView({
+               t={t}
+             />
            ))}
 +          {recognitionCount !== null && <RecognitionProgress count={recognitionCount} t={t} />}
          </div>
          {!atBottom && (
            <div className={css.toBottomSlot}>
 diff --git a/packages/client/ui-conversation/src/client/chat/MessageItem.module.css b/packages/client/ui-conversation/src/client/chat/MessageItem.module.css
-index 36824d228d..962ec3624f 100644
+index 54e5f6f98d..54a123abda 100644
 --- a/packages/client/ui-conversation/src/client/chat/MessageItem.module.css
 +++ b/packages/client/ui-conversation/src/client/chat/MessageItem.module.css
-@@ -282,3 +282,69 @@
-   white-space: nowrap;
-   vertical-align: baseline;
+@@ -289,3 +289,69 @@
+ .refIcon {
+   flex: none;
  }
 +
 +/* VEP/1 evidence disclosure inside a user bubble (DeepSeek Prism image
@@ -186,7 +186,7 @@ index 36824d228d..962ec3624f 100644
 +  overflow-wrap: anywhere;
 +}
 diff --git a/packages/client/ui-conversation/src/client/chat/MessageItem.tsx b/packages/client/ui-conversation/src/client/chat/MessageItem.tsx
-index 00b5110d68..830f23925b 100644
+index 8a882a70c5..e1c96a00ad 100644
 --- a/packages/client/ui-conversation/src/client/chat/MessageItem.tsx
 +++ b/packages/client/ui-conversation/src/client/chat/MessageItem.tsx
 @@ -3,7 +3,7 @@
@@ -198,7 +198,7 @@ index 00b5110d68..830f23925b 100644
  import type { ReactNode } from 'react'
  import type {
    ModelRetryNode, TurnErrorNode, UserMessageNode,
-@@ -19,23 +19,88 @@ import css from './MessageItem.module.css'
+@@ -18,23 +18,88 @@ import css from './MessageItem.module.css'
  
  type UserImage = Extract<UserMessageNode['content'][number], { type: 'image' }>
  
@@ -289,29 +289,8 @@ index 00b5110d68..830f23925b 100644
  }
  
  function retrySeconds(milliseconds: number): number {
-@@ -187,15 +252,17 @@ function UserStyleBubble({
-   pending?: boolean
-   t: ChatViewSlotProps['t']
- }): ReactNode {
--  const { text, images, rest } = contentParts(content)
-+  const { chunks, text, images, rest } = contentParts(content)
-   const truncated = (total: number): string => t('json.truncated', { total })
--  const showBubble = text !== '' || rest.length > 0
-+  const showBubble = text !== '' || rest.length > 0 || chunks.some(chunk => chunk.kind === 'evidence')
-   return (
-     <div className={css.userRow} data-pending-steering={pending || undefined} data-time-hover-root>
-       <div className={css.userStack}>
-         <ImageGallery images={images} load={imageLoader} align="end" labels={messageImageLabels(t)} />
-         {showBubble && <div className={css.bubble}>
--          {projectUserText(text)}
-+          {chunks.map((chunk, i) => chunk.kind === 'evidence'
-+            ? <VepEvidenceItem key={i} label={chunk.label} vep={chunk.vep} usage={chunk.usage} t={t} />
-+            : <Fragment key={i}>{projectUserText(chunk.text)}</Fragment>)}
-           {rest.map((block, i) => <JsonBlock key={i} label={t('message.extraBlock')} payload={block} truncatedLabel={truncated} />)}
-         </div>}
-       </div>
-@@ -204,6 +271,50 @@ function UserStyleBubble({
-   )
+@@ -212,6 +277,50 @@ function projectUserText(text: string, sessionLabels: readonly string[]): ReactN
+   return <>{parts}</>
  }
  
 +/**
@@ -358,39 +337,44 @@ index 00b5110d68..830f23925b 100644
 +  )
 +}
 +
- /**
-  * Render one Host-authoritative pending steering item with the same visual
-  * language as its eventual durable transcript node.
-diff --git a/packages/client/ui-conversation/src/client/input/contract.ts b/packages/client/ui-conversation/src/client/input/contract.ts
-index bad1e55d75..e6084995d2 100644
---- a/packages/client/ui-conversation/src/client/input/contract.ts
-+++ b/packages/client/ui-conversation/src/client/input/contract.ts
-@@ -213,6 +213,12 @@ export interface InputState {
-   /** Monotonic draft revision (span CAS compares against this). */
-   readonly draftRev: number
-   readonly phase: 'plain' | 'adjudicating' | 'claimed' | 'submitting'
-+  /**
-+   * Images in flight through the default sink (optimistic commit cleared
-+   * `imageIds`; nonzero exactly while the send RPC — including any vision
-+   * fallback — is outstanding). Drives the recognition progress row.
-+   */
-+  readonly sendingCount: number
-   /** Present exactly while claimed/submitting (claim snapshot during flight; submit closure withheld). */
-   readonly claim?: { readonly token: string; readonly hint?: string }
-   /** Chip occurrence table, sorted by offset (one U+FFFC per entry). */
+ /** Right-aligned bubble shared by user and steering rows. */
+ function UserStyleBubble({
+   content, renderMessageImages, actions, pending = false, referenceLabels = [], t,
+@@ -226,15 +335,17 @@ function UserStyleBubble({
+   referenceLabels?: readonly string[]
+   t: ChatViewSlotProps['t']
+ }): ReactNode {
+-  const { text, images, rest } = contentParts(content)
++  const { chunks, text, images, rest } = contentParts(content)
+   const truncated = (total: number): string => t('json.truncated', { total })
+-  const showBubble = text !== '' || rest.length > 0
++  const showBubble = text !== '' || rest.length > 0 || chunks.some(chunk => chunk.kind === 'evidence')
+   return (
+     <div className={css.userRow} data-pending-steering={pending || undefined} data-time-hover-root>
+       <div className={css.userStack}>
+         {renderMessageImages({ images, align: 'end' })}
+         {showBubble && <div className={css.bubble}>
+-          {projectUserText(text, referenceLabels)}
++          {chunks.map((chunk, i) => chunk.kind === 'evidence'
++            ? <VepEvidenceItem key={i} label={chunk.label} vep={chunk.vep} usage={chunk.usage} t={t} />
++            : <Fragment key={i}>{projectUserText(chunk.text, referenceLabels)}</Fragment>)}
+           {rest.map((block, i) => <JsonBlock key={i} label={t('message.extraBlock')} payload={block} truncatedLabel={truncated} />)}
+         </div>}
+         {referenceLabels.length > 0 && (
 diff --git a/packages/client/ui-conversation/src/client/input/facade.ts b/packages/client/ui-conversation/src/client/input/facade.ts
-index 35aa9197a2..7cc7e91812 100644
+index cc42d0c1ad..b2e011a2c1 100644
 --- a/packages/client/ui-conversation/src/client/input/facade.ts
 +++ b/packages/client/ui-conversation/src/client/input/facade.ts
-@@ -86,6 +86,7 @@ export class SessionInputShell implements SessionInput {
-   private noticeSeq = 0
-   private lastDraft = ''
+@@ -102,6 +102,8 @@ export class SessionInputShell implements SessionInput {
    private imageIds: readonly DraftAttachmentId[] = []
+   /** One image-only send at a time: Enter during the Host round-trip is a no-op. */
+   private imageSendInFlight = false
++  /** Default-sink images in flight (drives the recognition progress row). */
 +  private sendingCount = 0
    private disposed = false
-   /** Draft persistence mirror (chat store write; receives the clipboard projection, never raw placeholders). */
+   /** Draft persistence mirror (chat store write; receives the clipboard projection, never display-only ranges). */
    private mirrorFn: ((text: string) => void) | undefined
-@@ -158,6 +159,19 @@ export class SessionInputShell implements SessionInput {
+@@ -169,6 +171,19 @@ export class SessionInputShell implements SessionInput {
      this.run(this.core.dispatch({ type: 'send-committed' }))
    }
  
@@ -410,7 +394,7 @@ index 35aa9197a2..7cc7e91812 100644
    /** Undo the latest transaction (InputBar intercepts the platform chord). */
    undo(): void {
      this.run(this.core.dispatch({ type: 'undo' }))
-@@ -495,7 +509,12 @@ export class SessionInputShell implements SessionInput {
+@@ -590,7 +605,12 @@ export class SessionInputShell implements SessionInput {
  
    private compose(): InputState {
      const core = this.core.state
@@ -425,61 +409,46 @@ index 35aa9197a2..7cc7e91812 100644
  
    private publish(): void {
 diff --git a/packages/client/ui-conversation/src/client/input/hub.ts b/packages/client/ui-conversation/src/client/input/hub.ts
-index 54e09200ce..413b9ab9fb 100644
+index 7e3b95a314..796f6f3b99 100644
 --- a/packages/client/ui-conversation/src/client/input/hub.ts
 +++ b/packages/client/ui-conversation/src/client/input/hub.ts
-@@ -156,15 +156,22 @@ export class InputHub implements SessionInputResolver {
-     const shell = this.shells.get(session.sessionId)
-     // Commit, not an editable clear: undo must not resurrect sent content.
-     shell?.commitSend(imageIds)
--    void this.conversation().sendSession(session, text, imageIds, mode).catch(() => {
--      if (this.shells.get(session.sessionId) === shell) {
--        shell?.restoreImages(imageIds)
--        if (shell?.snapshot.draft === '') shell.setDraft(text)
--        return
--      }
--      const conversation = this.rootCtx.get('conversation') as ConversationAttachmentFace | undefined
--      for (const id of imageIds) conversation?.releaseDraftImage(id)
--    })
-+    // The send RPC (including any vision fallback) owns the recognition
-+    // progress row for its whole flight; settle clears it either way.
-+    shell?.markSendPending(imageIds.length)
-+    void this.conversation().sendSession(session, text, imageIds, mode)
-+      .catch(() => {
-+        if (this.shells.get(session.sessionId) === shell) {
-+          shell?.restoreImages(imageIds)
-+          if (shell?.snapshot.draft === '') shell.setDraft(text)
-+          return
-+        }
-+        const conversation = this.rootCtx.get('conversation') as ConversationAttachmentFace | undefined
-+        for (const id of imageIds) conversation?.releaseDraftImage(id)
-+      })
-+      .finally(() => {
-+        if (this.shells.get(session.sessionId) === shell) shell?.markSendSettled()
-+      })
-   }
- 
-   /**
+@@ -77,7 +77,15 @@ export class InputHub implements SessionInputResolver {
+       inputTriggers: () => this.controller(actx),
+       popup: () => this.popup(actx),
+       queue: queueReadFaceOf(session),
+-      defaultSink: (text, imageIds, mode, signal) => this.sink(session, text, imageIds, mode, signal),
++      defaultSink: (text, imageIds, mode, signal) => {
++        // The send RPC (including any vision fallback) owns the recognition
++        // progress row for its whole flight; settle clears it either way.
++        const pending = imageIds.length
++        if (pending > 0) shell.markSendPending(pending)
++        return this.sink(session, text, imageIds, mode, signal).finally(() => {
++          if (pending > 0) shell.markSendSettled()
++        })
++      },
+       steerQueue: () => { void this.steerQueue(session, shell) },
+       commandImages: {
+         serialize: ids => this.conversation().serializeDraftImages(ids),
 diff --git a/packages/client/ui-conversation/src/client/input/machine.ts b/packages/client/ui-conversation/src/client/input/machine.ts
-index 25fdf2fc9a..600e51256d 100644
+index a1a49004a4..c9271d0473 100644
 --- a/packages/client/ui-conversation/src/client/input/machine.ts
 +++ b/packages/client/ui-conversation/src/client/input/machine.ts
-@@ -136,6 +136,8 @@ export class InputMachine {
+@@ -147,6 +147,8 @@ export class InputMachine {
        imageIds: [],
        draftRev: this.draftRev,
        phase: this.phase,
 +      // The default-sink in-flight marker is facade-owned; the machine never sends.
 +      sendingCount: 0,
-       ...(c ? { claim: { token: c.token, ...(c.hint !== undefined ? { hint: c.hint } : {}) } } : {}),
-       occurrences: this.occurrences,
-       ...(this.paste !== undefined ? { paste: this.paste } : {}),
+       ...(c
+         ? {
+           claim: {
 diff --git a/packages/client/ui-conversation/src/client/locales.ts b/packages/client/ui-conversation/src/client/locales.ts
-index c9b6f658ca..83ebda4de6 100644
+index f4e7a7c59a..22fe318268 100644
 --- a/packages/client/ui-conversation/src/client/locales.ts
 +++ b/packages/client/ui-conversation/src/client/locales.ts
-@@ -92,6 +92,12 @@ export const zh = {
-   'chat.loadOlder': '加载更早',
-   'chat.toBottom': '回到底部',
+@@ -97,6 +97,12 @@ export const zh = {
+   'fileOpen.folderTitle': '无法打开文件夹',
+   'fileOpen.folderUnknown': '无法打开此文件夹',
    'message.extraBlock': '附加内容块',
 +  'message.vep.view': '查看识别结果：{label}',
 +  'message.vep.tokens': '{count} tokens',
@@ -489,10 +458,10 @@ index c9b6f658ca..83ebda4de6 100644
 +  'message.recognition.running': '正在识别 {count} 张图片…',
    'message.contextInjection': '上下文注入',
    'message.contextRecall': '跨会话召回',
-   'message.context.instructions.loaded': '已载入',
-@@ -261,6 +267,12 @@ export const en = {
-   'chat.loadOlder': 'Load earlier',
-   'chat.toBottom': 'Back to bottom',
+   'message.referenceSummary': '引用会话 · {labels}',
+@@ -274,6 +280,12 @@ export const en = {
+   'fileOpen.folderTitle': 'Couldn’t open folder',
+   'fileOpen.folderUnknown': 'Couldn’t open this folder',
    'message.extraBlock': 'Extra content block',
 +  'message.vep.view': 'View recognition result: {label}',
 +  'message.vep.tokens': '{count} tokens',
@@ -502,19 +471,19 @@ index c9b6f658ca..83ebda4de6 100644
 +  'message.recognition.running': 'Recognizing {count} image(s)…',
    'message.contextInjection': 'Context injection',
    'message.contextRecall': 'Session recall',
-   'message.context.instructions.loaded': 'loaded',
+   'message.referenceSummary': 'Referenced session · {labels}',
 diff --git a/packages/client/ui-conversation/tests/chat-view.client.spec.tsx b/packages/client/ui-conversation/tests/chat-view.client.spec.tsx
-index 360b589bdc..21521970ee 100644
+index b81dff8e6e..e778876b20 100644
 --- a/packages/client/ui-conversation/tests/chat-view.client.spec.tsx
 +++ b/packages/client/ui-conversation/tests/chat-view.client.spec.tsx
-@@ -22,6 +22,7 @@ import type {
+@@ -19,6 +19,7 @@ import { RpcId } from '@deepseek-ai/dsh-client-connection/client'
+ import type {
+   ChatNode, ChatNodeOwnerProps, ChatNodeViewProps, ChatViewSlotProps, SelectionTarget, UseChatNodeTurnData,
+ } from '@deepseek-ai/dsh-client-ui-conversation/client'
++import type { InputState } from '../src/client/input/contract.ts'
  import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
  import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
  import { createChatStore } from '../src/client/stores.ts'
-+import type { InputState } from '../src/client/input/contract.ts'
- import { ChatView } from '../src/client/chat/ChatView.tsx'
- import { zh } from '../src/client/locales.ts'
- import { AssistantNodeView } from '../src/client/chat/AssistantNodeView.tsx'
 @@ -262,13 +263,20 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
    // SessionProvider seat arrives with the session-scope child declaration;
    // ChatView never invokes it (render-prop pass-through stub).
@@ -546,7 +515,7 @@ index 360b589bdc..21521970ee 100644
    }
  }
  
-@@ -1355,3 +1363,32 @@ describe('ChatView', () => {
+@@ -1458,3 +1466,32 @@ describe('ChatView', () => {
      expect(failedView.container.querySelector('[data-state="error"]')).not.toBeNull()
    })
  })
@@ -581,10 +550,10 @@ index 360b589bdc..21521970ee 100644
 +})
 diff --git a/packages/client/ui-conversation/tests/message-vep.client.spec.tsx b/packages/client/ui-conversation/tests/message-vep.client.spec.tsx
 new file mode 100644
-index 0000000000..3f4a20e0a0
+index 0000000000..19a4ef786a
 --- /dev/null
 +++ b/packages/client/ui-conversation/tests/message-vep.client.spec.tsx
-@@ -0,0 +1,154 @@
+@@ -0,0 +1,121 @@
 +// @vitest-environment jsdom
 +// VEP/1 evidence disclosure in user bubbles: the DeepSeek Prism image
 +// fallback wrapper folds into a link until expanded; ordinary text and
@@ -595,13 +564,12 @@ index 0000000000..3f4a20e0a0
 +import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 +import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 +import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
-+import type { ChatConversationViewNode } from '@deepseek-ai/dsh-client-runtime/client'
 +import type { ChatNodeViewProps } from '../src/client/contract/slots.ts'
 +import { UserMessageNodeView, VEP_EVIDENCE_RE } from '../src/client/chat/MessageItem.tsx'
 +import { zh } from '../src/client/locales.ts'
 +
 +// Mirrors the real lookup chain (conversation namespace, then common).
-+const t: ChatNodeViewProps['t'] = makeTranslate(zh, commonZh)
++const t: ChatNodeViewProps<'user' | 'steering'>['t'] = makeTranslate(zh, commonZh)
 +
 +function renderUser(content: readonly unknown[]) {
 +  const viewNode = {
@@ -613,8 +581,8 @@ index 0000000000..3f4a20e0a0
 +    location: { kind: 'session' },
 +    visibility: 'visible',
 +    data: { content, time: 0, source: null },
-+  } as unknown as ChatConversationViewNode
-+  const props = { node: viewNode, t } as ChatNodeViewProps<'user' | 'steering'>
++  } as never
++  const props = { node: viewNode, renderMessageImages: () => null, t } as ChatNodeViewProps<'user' | 'steering'>
 +  return render(<UserMessageNodeView {...props} />)
 +}
 +
@@ -663,12 +631,6 @@ index 0000000000..3f4a20e0a0
 +    expect(screen.queryByText(VEP)).toBeNull()
 +  })
 +
-+  it('does not fold ordinary user text', () => {
-+    renderUser([{ type: 'text', text: 'hello bubble' }])
-+    expect(screen.queryByRole('button', { name: /查看识别结果/ })).toBeNull()
-+    expect(screen.getByText('hello bubble')).toBeTruthy()
-+  })
-+
 +  it('decorates the link with token usage and shows balance/cost when expanded', () => {
 +    renderUser([{
 +      type: 'text',
@@ -695,33 +657,7 @@ index 0000000000..3f4a20e0a0
 +    expect(screen.queryByText(/消耗/)).toBeNull()
 +  })
 +
-+  it('shows the cost alone when balance is omitted (gift-funded accounts)', () => {
-+    renderUser([{
-+      type: 'text',
-+      text: `【DeepSeek Prism 识别：b.png】\n${VEP}\n【DeepSeek Prism 用量】tokens=4397|cost=0.003099`,
-+    }])
-+    const link = screen.getByRole('button', { name: /查看识别结果：b\.png/ })
-+    expect(link.textContent).toContain('4.4k tokens')
-+    fireEvent.click(link)
-+    expect(screen.queryByText(/余额/)).toBeNull()
-+    expect(screen.getByText(/本次消耗约 ¥0\.003099/)).toBeTruthy()
-+  })
-+
-+  it('folds diff-prefixed blocks (对比) the same way as single-image blocks', () => {
-+    const diff = 'VEP/2|src=deepseek-prism/zai-org/GLM-4.5V|m=diff|t="爱门"|d=[{"x":0.8,"y":0.2,"w":0.1,"h":0.1,"desc":"黄点"}]'
-+    renderUser([{
-+      type: 'text',
-+      text: `【DeepSeek Prism 对比：a.png vs b.png】\n${diff}\n【DeepSeek Prism 用量】tokens=3539|cost=0.001857`,
-+    }])
-+    const link = screen.getByRole('button', { name: /查看识别结果：a\.png vs b\.png/ })
-+    expect(link.textContent).toContain('3.5k tokens')
-+    expect(screen.queryByText(diff)).toBeNull()
-+    fireEvent.click(link)
-+    expect(screen.getByText(diff)).toBeTruthy()
-+    expect(screen.getByText(/本次消耗约 ¥0\.001857/)).toBeTruthy()
-+  })
-+
-+  it('still copies the full joined text including the evidence', async () => {
++  it('copies the joined text including the evidence', async () => {
 +    const writeText = vi.fn().mockResolvedValue(undefined)
 +    Object.defineProperty(navigator, 'clipboard', {
 +      configurable: true,
@@ -755,15 +691,12 @@ index 4367a74dad..0b4de3794f 100644
  // Standard locale seat stub mirroring the real ns → common → key chain.
  const t: QueueDockProps['t'] = makeTranslate(zh, commonZh)
 diff --git a/packages/host/apiproxy/src/api-proxy.ts b/packages/host/apiproxy/src/api-proxy.ts
-index bda99362b6..386ffc734b 100644
+index ba354e1173..54220fd054 100644
 --- a/packages/host/apiproxy/src/api-proxy.ts
 +++ b/packages/host/apiproxy/src/api-proxy.ts
-@@ -125,8 +125,26 @@ const DEFAULT_MAX_MESSAGES = 50
-  */
- const WEB_SETTINGS_NAMESPACES = [
-   'agent-loop', 'shell', 'locale', 'permission', 'ui-conversation', 'ui-theme', 'web-search-deepseek',
-+  'deepseek-prism',
- ] as const
+@@ -114,6 +114,23 @@ import { canOpenNativePath, openNativePath, openNativeTextFile } from './native-
+ /** Page size when history is called without maxMessages. */
+ const DEFAULT_MAX_MESSAGES = 50
  
 +/**
 + * Optional image-fallback seam for text-only model routes. A vision plugin
@@ -785,7 +718,7 @@ index bda99362b6..386ffc734b 100644
  /** Provider work budget: at most 100 calls and 2,000 inspected hits. */
  const SESSION_SEARCH_PROVIDER_CALL_LIMIT = 100
  
-@@ -2459,7 +2477,8 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
+@@ -2359,7 +2376,8 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
        },
  
        async prompt(request) {
@@ -795,7 +728,7 @@ index bda99362b6..386ffc734b 100644
          const canonicalTimeZone = clientTimeZone === undefined
            ? undefined
            : canonicalClientTimeZone(clientTimeZone)
-@@ -2486,11 +2505,23 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
+@@ -2386,11 +2404,23 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
                const current = selectionFor(agent).current
                const modelInfo = await ctx.llm.resolveModelInfo(current.provider, current.model)
                if (modelInfo.inputModalities !== undefined && !modelInfo.inputModalities.includes('image')) {
@@ -825,10 +758,10 @@ index bda99362b6..386ffc734b 100644
              }
              const durable = await durablePromptContent(ctx, content)
 diff --git a/packages/host/apiproxy/tests/api-proxy-models.spec.ts b/packages/host/apiproxy/tests/api-proxy-models.spec.ts
-index 7b6cc3c782..0ded17837a 100644
+index 1317220ef3..ab45d63015 100644
 --- a/packages/host/apiproxy/tests/api-proxy-models.spec.ts
 +++ b/packages/host/apiproxy/tests/api-proxy-models.spec.ts
-@@ -196,6 +196,83 @@ describe('Web session model selection', () => {
+@@ -199,6 +199,83 @@ describe('Web session model selection', () => {
      await ctx.fiber.dispose()
    })
  
@@ -909,89 +842,114 @@ index 7b6cc3c782..0ded17837a 100644
 +    await ctx.fiber.dispose()
 +  })
 +
-   it('refuses a text-only selection while durable or pending image content remains visible', async () => {
+   it('allows a text-only selection while durable or pending images remain available for later models', async () => {
      const { ctx, agent, sessionId } = await harness()
      registerTextOnly(ctx)
-diff --git a/packages/llm/llm-deepseek/src/serialize.ts b/packages/llm/llm-deepseek/src/serialize.ts
-index 34fa214bb9..0fa900f8b0 100644
---- a/packages/llm/llm-deepseek/src/serialize.ts
-+++ b/packages/llm/llm-deepseek/src/serialize.ts
-@@ -7,7 +7,7 @@
-  * @module dsh-llm-deepseek/serialize
-  */
- 
--import { contentHasImage, LlmError } from '@deepseek-ai/dsh-llm'
-+import { LlmError } from '@deepseek-ai/dsh-llm'
- import type { ContentBlock, GenerateOptions, Message } from '@deepseek-ai/dsh-llm'
- import type { WireMessage, WireRequest, WireTool } from './types.ts'
- 
-@@ -52,7 +52,11 @@ function resolveThinking(options: GenerateOptions, defaults: RequestDefaults): R
-   return defaults.thinking === undefined ? {} : { thinking: defaults.thinking }
+diff --git a/packages/llm/llm-deepseek/src/adapter.ts b/packages/llm/llm-deepseek/src/adapter.ts
+index 8c30333131..83cae82d50 100644
+--- a/packages/llm/llm-deepseek/src/adapter.ts
++++ b/packages/llm/llm-deepseek/src/adapter.ts
+@@ -14,6 +14,7 @@ import type {
+   GenerateOptions,
+   LlmModelInfo,
+   LlmProviderInfo,
++  Message,
+   PreparedAdapterCall,
+   LlmResolvedModelInfo,
+   ModelModality,
+@@ -248,6 +249,23 @@ function providerRejectedFileId(detail: string): boolean {
+   return file && (missing || invalidId)
  }
  
--/** Join the text blocks of a message (used for user/tool-result content). */
-+/** Join the text blocks of a message (used for user/tool-result content).
-+ * Image blocks are tolerated as display-only attachments (the prism
-+ * image-fallback keeps them in the durable message for the UI while the
-+ * model consumes the converted text) and are skipped here; the wire route
-+ * stays text-only. */
- function flattenText(blocks: ContentBlock[]): string {
-   return blocks
-     .filter(block => block.type === 'text')
-@@ -60,13 +64,6 @@ function flattenText(blocks: ContentBlock[]): string {
-     .join('')
- }
- 
--/** Reject core image content before any text-flattening path can silently erase it. */
--function assertTextOnly(blocks: readonly ContentBlock[]): void {
--  if (contentHasImage(blocks)) {
--    throw new LlmError('The DeepSeek chat-completions adapter does not support image content.', 'UNSUPPORTED_CONTENT')
--  }
--}
--
- /** Serialize one assistant message (text + reasoning + tool calls). */
- function serializeAssistant(message: Message): WireMessage {
-   const text = flattenText(message.content)
-@@ -112,7 +109,6 @@ function serializeAssistant(message: Message): WireMessage {
- export function serializeMessages(messages: Message[]): WireMessage[] {
-   const wire: WireMessage[] = []
-   for (const message of messages) {
--    assertTextOnly(message.content)
-     if (message.role === 'system') {
-       wire.push({ role: 'system', content: flattenText(message.content) })
-       continue
-diff --git a/packages/llm/llm-deepseek/tests/serialize.spec.ts b/packages/llm/llm-deepseek/tests/serialize.spec.ts
-index e7e95703fb..59caa06907 100644
---- a/packages/llm/llm-deepseek/tests/serialize.spec.ts
-+++ b/packages/llm/llm-deepseek/tests/serialize.spec.ts
-@@ -133,17 +133,21 @@ describe('serializeMessages', () => {
-     expect(wire).toEqual([{ role: 'user', content: 'see chart' }])
++/**
++ * Strip image blocks from every message. A text-only model's image blocks are
++ * display-only attachments (the prism image-fallback converted them to text
++ * evidence), so the text path serializes instead of rejecting.
++ * @param messages - the transient request messages.
++ * @returns the original messages (same reference) when nothing was stripped.
++ */
++function stripDisplayOnlyImages(messages: readonly Message[]): Message[] {
++  let changed = false
++  const next = messages.map(message => {
++    const content = message.content.filter(block => block.type !== 'image')
++    if (content.length !== message.content.length) changed = true
++    return content.length === message.content.length ? message : { ...message, content }
++  })
++  return changed ? next : messages
++}
++
+ function detailNamesFileId(detail: string, fileId: DeepSeekFileId): boolean {
+   let index = detail.indexOf(fileId)
+   while (index >= 0) {
+@@ -439,10 +457,16 @@ export class DeepSeekAdapter extends LlmAdapter {
+     // never observes a configuration change and the next call re-resolves.
+     // The key resolves *from this snapshot*, so an endpoint and the secret
+     // sent to it can never come from different configuration generations.
+-    const hasImages = options.messages.some(message => contentHasImage(message.content))
++    // Prism patch (0.8.0): a text-only model's image blocks are display-only
++    // attachments (the image-fallback converted them to text evidence); strip
++    // them so the text path serializes, instead of rejecting UNSUPPORTED_CONTENT.
++    const model = connection.models.find(entry => entry.id === options.model)
++    const messages = model?.inputModalities?.includes('image') !== true
++      ? stripDisplayOnlyImages(options.messages)
++      : options.messages
++    const hasImages = messages.some(message => contentHasImage(message.content))
+     let attachments: AttachmentStore | undefined
+     if (hasImages) {
+-      const model = connection.models.find(entry => entry.id === options.model)
+       if (model?.inputModalities?.includes('image') !== true) {
+         throw new LlmError(
+           `DeepSeek model "${options.model}" does not accept image input.`,
+@@ -465,7 +489,7 @@ export class DeepSeekAdapter extends LlmAdapter {
+       : AbortSignal.any([options.signal, consumer.signal])
+     using watchdog = idleWatchdog(upstream, connection.streamIdleTimeoutMs, STREAM_IDLE_TIMEOUT_CODE)
+     const iterator = this.request(
+-      options,
++      { ...options, messages },
+       watchdog.signal,
+       connection,
+       apiKey,
+diff --git a/packages/llm/llm-deepseek/tests/adapter.spec.ts b/packages/llm/llm-deepseek/tests/adapter.spec.ts
+index 085b35063a..fad1d96d3a 100644
+--- a/packages/llm/llm-deepseek/tests/adapter.spec.ts
++++ b/packages/llm/llm-deepseek/tests/adapter.spec.ts
+@@ -871,9 +871,9 @@ describe('DeepSeekAdapter against a mock server', () => {
    })
  
--  it('rejects image blocks instead of silently flattening them away', () => {
--    expect(() => serializeMessages([createUserMessage({
--      content: [{
--        type: 'image',
--        attachment: {
--          attachmentId: AttachmentId(`sha256:${'a'.repeat(64)}`),
--          mediaType: 'image/png', bytes: 68, width: 1, height: 1,
-+  it('strips display-only image blocks while keeping the surrounding text', () => {
-+    const wire = serializeMessages([createUserMessage({
-+      content: [
-+        {
-+          type: 'image',
-+          attachment: {
-+            attachmentId: AttachmentId(`sha256:${'a'.repeat(64)}`),
-+            mediaType: 'image/png', bytes: 68, width: 1, height: 1,
-+          },
-         },
--      }],
-+        { type: 'text', text: '看看这张图' },
-+      ],
-       source: { kind: 'plugin', plugin: 'test' },
--    })])).toThrow(expect.objectContaining({ code: 'UNSUPPORTED_CONTENT' }))
-+    })])
-+    expect(wire).toEqual([{ role: 'user', content: '看看这张图' }])
-   })
+   it.each(['deepseek-v4-flash', 'unlisted-pass-through'])(
+-    'rejects image input for text-only model %s before credentials, attachments, or fetch',
++    'strips display-only image blocks for text-only model %s (prism fallback)',
+     async (model) => {
+-      const server = await mockServer([])
++      const server = await mockServer([{ kind: 'sse', events: textEvents }])
+       const resolveApiKey = vi.fn(() => Promise.resolve('k'))
+       const resolveAttachments = vi.fn(() => ({}) as AttachmentStore)
+       const adapter = new DeepSeekAdapter({
+@@ -883,17 +883,22 @@ describe('DeepSeekAdapter against a mock server', () => {
+         resolveAttachments,
+       })
  
-   it('emits an empty user message rather than dropping block-less messages', () => {
+-      await expect(drain(adapter.stream({
++      await drain(adapter.stream({
+         provider: 'deepseek-official',
+         model,
+         messages: [createUserMessage({
+-          content: [{ type: 'image', attachment: imageRef }],
++          content: [
++            { type: 'text', text: '看看这张图' },
++            { type: 'image', attachment: imageRef },
++          ],
+           source: { kind: 'plugin', plugin: 'test' },
+         })],
+-      }))).rejects.toMatchObject({ code: 'UNSUPPORTED_CONTENT' })
+-      expect(resolveApiKey).not.toHaveBeenCalled()
++      }))
++      expect(resolveApiKey).toHaveBeenCalled()
+       expect(resolveAttachments).not.toHaveBeenCalled()
+-      expect(server.requests).toHaveLength(0)
++      const body = JSON.stringify(server.requests[0])
++      expect(body).toContain('看看这张图')
++      expect(body).not.toContain('"type":"image_url"')
+     },
+   )
+ 

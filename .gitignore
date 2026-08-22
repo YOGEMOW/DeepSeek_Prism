@@ -5,3 +5,6 @@ __pycache__/
 *.log
 .DS_Store
 dist/
+
+# npm 发布 tarball（本地产物，不入库）
+dist-npm/

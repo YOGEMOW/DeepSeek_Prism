@@ -14,6 +14,16 @@ export type PrismKey =
   | 'regionHint'
   | 'regionCn'
   | 'regionGlobal'
+  | 'providerLabel'
+  | 'providerHint'
+  | 'visionHandlingLabel'
+  | 'visionHandlingHint'
+  | 'visionHandlingNative'
+  | 'visionHandlingPrism'
+  | 'deployModeLabel'
+  | 'deployModeHint'
+  | 'deployModeZero'
+  | 'deployModePatch'
   | 'showUsageLabel'
   | 'showUsageHint'
   | 'showBalanceLabel'
@@ -47,6 +57,16 @@ export const zh: Record<PrismKey, string> = {
   regionHint: 'cn 优先国内 Provider；global 优先国际 Provider。',
   regionCn: 'cn（国内）',
   regionGlobal: 'global（国际）',
+  providerLabel: '视觉 Provider',
+  providerHint: 'siliconflow / zhipu / modelscope / alibaba / openrouter / groq / deepseek / custom。选择后模型与 Base URL 使用该 Provider 的默认值（仍可被下方字段覆盖）。',
+  visionHandlingLabel: '视觉模型处理',
+  visionHandlingHint: '视觉会话模型：native 原生放行（模型直接看图）；prism 先转 VEP 证据（更省 token）。纯文本模型始终走 prism 转换。',
+  visionHandlingNative: 'native（原生放行）',
+  visionHandlingPrism: 'prism（转 VEP 证据）',
+  deployModeLabel: '部署模式',
+  deployModeHint: 'zero-patch：丢弃原图转指针，harness 零改动；patch：保留原图展示与折叠/进度 UI，需应用 harness 可选补丁。',
+  deployModeZero: 'zero-patch（零补丁）',
+  deployModePatch: 'patch（保留原图，需补丁）',
   showUsageLabel: '显示识别消耗 token',
   showUsageHint: '在识别结果链接上显示本次消耗的 token 数。',
   showBalanceLabel: '显示余额与消耗额',
@@ -81,6 +101,16 @@ export const en: Record<PrismKey, string> = {
   regionHint: 'cn prefers domestic providers; global prefers international ones.',
   regionCn: 'cn (domestic)',
   regionGlobal: 'global (international)',
+  providerLabel: 'Vision provider',
+  providerHint: 'siliconflow / zhipu / modelscope / alibaba / openrouter / groq / deepseek / custom. Selecting one defaults model and base URL (still overridable below).',
+  visionHandlingLabel: 'Vision model handling',
+  visionHandlingHint: 'For a vision-capable session model: native passes raw images; prism converts to VEP evidence (fewer tokens). Text-only models always convert.',
+  visionHandlingNative: 'native (pass through)',
+  visionHandlingPrism: 'prism (VEP evidence)',
+  deployModeLabel: 'Deploy mode',
+  deployModeHint: 'zero-patch: drop originals for a path pointer, no harness patch; patch: keep originals + fold/progress UI, needs the optional harness patch.',
+  deployModeZero: 'zero-patch (no patch)',
+  deployModePatch: 'patch (keep originals, needs patch)',
   showUsageLabel: 'Show recognition token usage',
   showUsageHint: 'Show the token count spent on the recognition link.',
   showBalanceLabel: 'Show balance and cost',

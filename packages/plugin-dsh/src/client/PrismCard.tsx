@@ -233,6 +233,78 @@ export function PrismCard(props: PrismCardProps) {
           </select>
         )}
       />
+      <PrismFieldRow
+        id="prism-settings-provider"
+        label={t('providerLabel')}
+        hint={t('providerHint')}
+        overridden={state.provider.overridden}
+        overriddenLabel={t('overridden')}
+        resetLabel={t('reset')}
+        disabled={disabled}
+        onReset={() => { props.resetField('provider') }}
+        control={(
+          <select
+            id="prism-settings-provider"
+            className={css.input}
+            value={state.provider.text}
+            disabled={disabled}
+            onChange={(event) => { props.edit('provider', event.target.value) }}
+          >
+            <option value="siliconflow">siliconflow</option>
+            <option value="zhipu">zhipu</option>
+            <option value="modelscope">modelscope</option>
+            <option value="alibaba">alibaba</option>
+            <option value="openrouter">openrouter</option>
+            <option value="groq">groq</option>
+            <option value="deepseek">deepseek</option>
+            <option value="custom">custom</option>
+          </select>
+        )}
+      />
+      <PrismFieldRow
+        id="prism-settings-vision-handling"
+        label={t('visionHandlingLabel')}
+        hint={t('visionHandlingHint')}
+        overridden={state.visionModelHandling.overridden}
+        overriddenLabel={t('overridden')}
+        resetLabel={t('reset')}
+        disabled={disabled}
+        onReset={() => { props.resetField('visionModelHandling') }}
+        control={(
+          <select
+            id="prism-settings-vision-handling"
+            className={css.input}
+            value={state.visionModelHandling.text}
+            disabled={disabled}
+            onChange={(event) => { props.edit('visionModelHandling', event.target.value) }}
+          >
+            <option value="native">{t('visionHandlingNative')}</option>
+            <option value="prism">{t('visionHandlingPrism')}</option>
+          </select>
+        )}
+      />
+      <PrismFieldRow
+        id="prism-settings-deploy-mode"
+        label={t('deployModeLabel')}
+        hint={t('deployModeHint')}
+        overridden={state.deployMode.overridden}
+        overriddenLabel={t('overridden')}
+        resetLabel={t('reset')}
+        disabled={disabled}
+        onReset={() => { props.resetField('deployMode') }}
+        control={(
+          <select
+            id="prism-settings-deploy-mode"
+            className={css.input}
+            value={state.deployMode.text}
+            disabled={disabled}
+            onChange={(event) => { props.edit('deployMode', event.target.value) }}
+          >
+            <option value="zero-patch">{t('deployModeZero')}</option>
+            <option value="patch">{t('deployModePatch')}</option>
+          </select>
+        )}
+      />
       <div className={css.field}>
         <div className={css.head}>
           <label className={css.label} htmlFor="prism-settings-show-usage">{t('showUsageLabel')}</label>
