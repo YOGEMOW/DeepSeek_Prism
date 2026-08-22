@@ -56,10 +56,12 @@
 
 ## 进行中
 
-- 0.8.0 统一版发布收尾：重建 harness 已执行；待 `git tag v0.8.0` + GitHub Release、npmjs 发布（用户 2FA）、部署 profile 切 0.8.0 并重启验证。
+- 0.8.0 统一版：已实现并提交（插件 `b994717`、文档 `0b9de5a`）；harness 重建已执行（补丁产物验证通过）；`git tag v0.8.0` + GitHub Release v0.8.0 已创建（附 0.8.0 tarball）；**npmjs 发布待用户 2FA**。
 
 ## 待处理
 
-- 部署 0.8.0 到本机 web profile（`dsh plugin add @yogemow/deepseek-prism-dsh@0.8.0` + 重启）并验证（settings 卡片、发图准入、视觉模型 native/prism）。
+- npmjs 发布 0.8.0（用户 2FA：`npm publish dist-npm\0.8.0\deepseek-prism-dsh-0.8.0.tgz --registry https://registry.npmjs.org/ --access public`，从仓库外目录执行）。
+- 部署 0.8.0 到本机 web profile（`dsh plugin remove` 旧版 + `dsh plugin add @yogemow/deepseek-prism-dsh@0.8.0` + 重启，`deployMode: patch` 已打补丁）+ 验证（settings 卡片、发图准入、视觉模型 native/prism）。
+- 客户端卡片在新 harness 的运行兼容依赖 `ui-slots`/`locale`/`settingsScope` 服务名一致（`ui-slots` 仍在，需部署实测）；插件本地 typecheck 需恢复 profile 的 `@deepseek-ai` 包目录（`dsh plugin remove` 清空了它）。
 - Codex 技能副本按需同步（skill 包内容未变）。
 - Keychain / 自动裁剪 / 更多样例（按需）。
