@@ -56,11 +56,11 @@
 
 ## 进行中
 
-- 0.8.1（keyed slot 修复）：`v0.8.1` tag + GitHub Release 已创建（附 0.8.1 tarball）+ CHANGELOG/STATUS 已更新；**npmjs 发布待用户 2FA**（0.8.0 的卡片注册 bug 由 0.8.1 覆盖）。
+- 0.8.2（准入证据截断修复）：`v0.8.2` tag + GitHub Release 已创建（附 0.8.2 tarball）+ CHANGELOG 已更新；**npmjs 发布待用户 2FA**（0.8.0 卡片 bug 由 0.8.1 覆盖、截断 bug 由 0.8.2 覆盖）。
 
 ## 待处理
 
-- **npmjs 发布 0.8.1**（用户 2FA：`npm publish E:\Git\repositoris\DeepSeek_Prism\dist-npm\0.8.1\deepseek-prism-dsh-0.8.1.tgz --registry https://registry.npmjs.org/ --access public`，从仓库外目录执行）。
-- **重启 dsh web 服务**并验证（本机 profile 已装 0.8.1 本地构建；设置卡片应正常显示可编辑，含 Provider/deepseek、视觉模型处理、部署模式）。
+- **npmjs 发布 0.8.1 与 0.8.2**（用户 2FA：`npm publish E:\Git\repositoris\DeepSeek_Prism\dist-npm\0.8.1\deepseek-prism-dsh-0.8.1.tgz`、`...\0.8.2\deepseek-prism-dsh-0.8.2.tgz`，从仓库外目录执行）。
+- **重启 dsh web 服务**并验证（本机 profile 为 0.8.2 本地 link，重启即生效；设置卡片可编辑 + 长截图不再截断 + 发图准入正常）。
 - Codex 技能副本按需同步（skill 包内容未变）。
 - Keychain / 自动裁剪 / 更多样例（按需）。
