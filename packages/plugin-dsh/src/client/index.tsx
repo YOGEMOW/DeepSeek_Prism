@@ -40,8 +40,7 @@ export function apply(ctx: ClientContext): void {
   const controller = new PrismCardController(ctx.settingsScope.bind({ namespace: 'deepseek-prism' }), api, ctx)
   ctx.slots.inject('settings.plugin.item', () => ctx.slots.register({
     name: 'settings.plugin.item',
-    id: 'deepseek-prism',
-    order: 30,
+    key: 'deepseek-prism',
     locale: NS,
     inject: (): PrismCardFace => controller.inject(),
   }, PrismCard))
