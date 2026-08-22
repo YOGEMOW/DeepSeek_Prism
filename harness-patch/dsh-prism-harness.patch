@@ -361,6 +361,23 @@ index 8a882a70c5..e1c96a00ad 100644
            {rest.map((block, i) => <JsonBlock key={i} label={t('message.extraBlock')} payload={block} truncatedLabel={truncated} />)}
          </div>}
          {referenceLabels.length > 0 && (
+diff --git a/packages/client/ui-conversation/src/client/input/contract.ts b/packages/client/ui-conversation/src/client/input/contract.ts
+index b9ace8b863..0a660ec8eb 100644
+--- a/packages/client/ui-conversation/src/client/input/contract.ts
++++ b/packages/client/ui-conversation/src/client/input/contract.ts
+@@ -217,6 +217,12 @@ export interface InputState {
+   /** Monotonic draft revision (span CAS compares against this). */
+   readonly draftRev: number
+   readonly phase: 'plain' | 'adjudicating' | 'claimed' | 'submitting'
++  /**
++   * Images in flight through the default sink (optimistic commit cleared
++   * `imageIds`; nonzero exactly while the send RPC — including any vision
++   * fallback — is outstanding). Drives the recognition progress row.
++   */
++  readonly sendingCount: number
+   /** Present exactly while claimed/submitting (claim snapshot during flight; submit closure withheld). */
+   readonly claim?: { readonly token: string; readonly hint?: string; readonly images?: boolean }
+   /** Reference occurrence table, sorted by offset. */
 diff --git a/packages/client/ui-conversation/src/client/input/facade.ts b/packages/client/ui-conversation/src/client/input/facade.ts
 index cc42d0c1ad..b2e011a2c1 100644
 --- a/packages/client/ui-conversation/src/client/input/facade.ts
@@ -550,7 +567,7 @@ index b81dff8e6e..e778876b20 100644
 +})
 diff --git a/packages/client/ui-conversation/tests/message-vep.client.spec.tsx b/packages/client/ui-conversation/tests/message-vep.client.spec.tsx
 new file mode 100644
-index 0000000000..19a4ef786a
+index 0000000000..387bad4304
 --- /dev/null
 +++ b/packages/client/ui-conversation/tests/message-vep.client.spec.tsx
 @@ -0,0 +1,121 @@
@@ -581,8 +598,8 @@ index 0000000000..19a4ef786a
 +    location: { kind: 'session' },
 +    visibility: 'visible',
 +    data: { content, time: 0, source: null },
-+  } as never
-+  const props = { node: viewNode, renderMessageImages: () => null, t } as ChatNodeViewProps<'user' | 'steering'>
++  } as unknown
++  const props = { node: viewNode, renderMessageImages: () => null, t } as unknown as ChatNodeViewProps<'user' | 'steering'>
 +  return render(<UserMessageNodeView {...props} />)
 +}
 +
@@ -846,7 +863,7 @@ index 1317220ef3..ab45d63015 100644
      const { ctx, agent, sessionId } = await harness()
      registerTextOnly(ctx)
 diff --git a/packages/llm/llm-deepseek/src/adapter.ts b/packages/llm/llm-deepseek/src/adapter.ts
-index 8c30333131..83cae82d50 100644
+index 8c30333131..86bf614fdd 100644
 --- a/packages/llm/llm-deepseek/src/adapter.ts
 +++ b/packages/llm/llm-deepseek/src/adapter.ts
 @@ -14,6 +14,7 @@ import type {
@@ -857,7 +874,7 @@ index 8c30333131..83cae82d50 100644
    PreparedAdapterCall,
    LlmResolvedModelInfo,
    ModelModality,
-@@ -248,6 +249,23 @@ function providerRejectedFileId(detail: string): boolean {
+@@ -248,6 +249,20 @@ function providerRejectedFileId(detail: string): boolean {
    return file && (missing || invalidId)
  }
  
@@ -869,19 +886,16 @@ index 8c30333131..83cae82d50 100644
 + * @returns the original messages (same reference) when nothing was stripped.
 + */
 +function stripDisplayOnlyImages(messages: readonly Message[]): Message[] {
-+  let changed = false
-+  const next = messages.map(message => {
++  return messages.map(message => {
 +    const content = message.content.filter(block => block.type !== 'image')
-+    if (content.length !== message.content.length) changed = true
 +    return content.length === message.content.length ? message : { ...message, content }
 +  })
-+  return changed ? next : messages
 +}
 +
  function detailNamesFileId(detail: string, fileId: DeepSeekFileId): boolean {
    let index = detail.indexOf(fileId)
    while (index >= 0) {
-@@ -439,10 +457,16 @@ export class DeepSeekAdapter extends LlmAdapter {
+@@ -439,10 +454,16 @@ export class DeepSeekAdapter extends LlmAdapter {
      // never observes a configuration change and the next call re-resolves.
      // The key resolves *from this snapshot*, so an endpoint and the secret
      // sent to it can never come from different configuration generations.
@@ -900,7 +914,7 @@ index 8c30333131..83cae82d50 100644
        if (model?.inputModalities?.includes('image') !== true) {
          throw new LlmError(
            `DeepSeek model "${options.model}" does not accept image input.`,
-@@ -465,7 +489,7 @@ export class DeepSeekAdapter extends LlmAdapter {
+@@ -465,7 +486,7 @@ export class DeepSeekAdapter extends LlmAdapter {
        : AbortSignal.any([options.signal, consumer.signal])
      using watchdog = idleWatchdog(upstream, connection.streamIdleTimeoutMs, STREAM_IDLE_TIMEOUT_CODE)
      const iterator = this.request(

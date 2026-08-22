@@ -6,8 +6,9 @@
 
 | 版本 | 定位 | 说明 |
 | --- | --- | --- |
-| **[v0.7.1](https://github.com/YOGEMOW/DeepSeek_Prism/releases/tag/v0.7.1)** | **零补丁版** | DSH 当前主线：自包含 Cordis 组合包，`prism_see` 工具 + 纯文本模型图片准入 VEP 降级 + 技能运行时注册 + 设置卡片；harness 本体零改动、上游更新零冲突、卸载零残留 |
-| **[v0.6.2](https://github.com/YOGEMOW/DeepSeek_Prism/releases/tag/v0.6.2)** | **实用版** | DSH 完整 UI 体验：原图保留展示 + VEP 折叠链接/识别进度卡片 + Web 设置卡片可编辑；需应用 `harness-patch/dsh-prism-harness.patch`（可选增强） |
+| **[v0.8.0](https://github.com/YOGEMOW/DeepSeek_Prism/releases/tag/v0.8.0)** | **统一版（推荐）** | 替代 0.6.x/0.7.x 的一条主线：`prism_see` 工具 + 纯文本/视觉模型准入（`native` 原生放行 / `prism` 转 VEP）+ 技能运行时注册 + 设置卡片（`prism_see`）+ 视觉 Provider 可选（含 DeepSeek 视觉）。`deployMode` 二选一：`zero-patch`（harness 零改动）/ `patch`（保留原图 + VEP 折叠/进度 UI，需可选补丁） |
+| **[v0.7.1](https://github.com/YOGEMOW/DeepSeek_Prism/releases/tag/v0.7.1)** | 零补丁版（已由 0.8.0 取代） | 自包含，harness 零改动；0.8.0 的 `deployMode: zero-patch` 等价形态 |
+| **[v0.6.2](https://github.com/YOGEMOW/DeepSeek_Prism/releases/tag/v0.6.2)** | 实用版（已由 0.8.0 取代） | 原图保留 + 折叠/进度 UI（需补丁）；0.8.0 的 `deployMode: patch` 等价形态 |
 | **[v0.2.0](https://github.com/YOGEMOW/DeepSeek_Prism/releases/tag/v0.2.0)** | **Codex 推荐 skills 版** | Codex 平台的技能本体（SKILL.md + `scripts/vision.mjs` + references），安装到 `~/.codex/skills/deepseek-prism` |
 
 ## 功能
@@ -18,7 +19,7 @@
 - 自动分级：小图/简单任务默认 VEP/1；长内容（代码截图、长日志、文档、宽/高比大的图）自动走 `--detail` 完整通道；超长内容自动续写并合并。
 - 程序化输出：`--raw` 输出清洗后的原文；`--full` 输出 `{raw, parsed}` JSON 信封。
 - 输入预处理：解析图片宽高（含 AVIF/TIFF/SVG 的 sharp metadata 回退），超过 2048px 时用 sharp（libvips）等比缩放后再上传，不依赖宿主安装 Python 等工具；sharp 自动查找 Codex 桌面运行时 / DSH Web 运行时（`~/.dsh/profiles/node_modules/sharp`）/ 技能目录 `node_modules/sharp`（或 `VISION_SHARP_PATH` 指定）；动画 GIF 缩放后保留全部帧，AVIF/TIFF/SVG 统一转为 PNG 保证视觉 API 兼容。
-- 多 Provider 预设与自动降级：SiliconFlow（测试首选）/ 智谱 / ModelScope / 阿里 / OpenRouter / Groq。
+- 多 Provider 预设与自动降级：SiliconFlow（测试首选）/ 智谱 / ModelScope / 阿里 / OpenRouter / Groq / **DeepSeek（`deepseek-v4-flash-vision-exp`）**。
 - SHA-256 本地缓存：TTL 24 小时、上限 1000 条，`--no-cache` 可跳过。
 - 零运行时依赖：仅需 Node.js >= 18（内置 fetch / crypto / node:test）。
 
@@ -26,30 +27,32 @@
 
 按平台分开发布两个包（版本选择见上表；GitHub Release 资产见 [Releases](https://github.com/YOGEMOW/DeepSeek_Prism/releases)）：
 
-- **DSH（DeepSeek Harness）**：`@yogemow/deepseek-prism-dsh`（npmjs 已发布 v0.6.2 与 v0.7.1）。两个版本的差别：
+- **DSH（DeepSeek Harness）**：`@yogemow/deepseek-prism-dsh`（最新 v0.8.0 统一版）。`deployMode` 二选一：
 
-  | 版本 | 定位 | 安装命令 | 前置要求 |
-  | --- | --- | --- | --- |
-  | **v0.7.1**（latest） | 零补丁版：`prism_see` 工具 + 纯文本模型图片准入 VEP 降级 + 技能运行时注册 + 设置卡片 | `dsh plugin --profile <name> add @yogemow/deepseek-prism-dsh` | **无**——harness 本体零改动、上游更新零冲突、卸载零残留 |
-  | **v0.6.2** | 实用版：原图保留展示 + VEP 折叠链接/识别进度卡片 + Web 设置卡片可编辑 | `dsh plugin --profile <name> add @yogemow/deepseek-prism-dsh@0.6.2` | 需应用 `harness-patch/dsh-prism-harness.patch` 并重建 host/client 产物 |
+  | 模式 | 安装命令 | 前置要求 |
+  | --- | --- | --- |
+  | **`zero-patch`**（默认） | `dsh plugin --profile <name> add @yogemow/deepseek-prism-dsh` | **无**——harness 零改动、上游更新零冲突、卸载零残留 |
+  | **`patch`**（保留原图 + 折叠/进度 UI） | 同上 + profile `cordis.patch.yml` 设 `config: { deployMode: patch }` | 需应用 `harness-patch/dsh-prism-harness.patch` 并重建 host/client 产物 |
 
   ```powershell
-  # 1) 按名安装（默认 v0.7.1；指定版本加 @0.6.2）
+  # 1) 按名安装（latest = 0.8.0）
   dsh plugin --profile web add @yogemow/deepseek-prism-dsh
   # 2) 重启 web 服务；卸载：dsh plugin --profile web remove @yogemow/deepseek-prism-dsh
   ```
+
+  视觉模型处理：纯文本会话模型始终经 prism 转 VEP 证据；视觉模型（如 `deepseek-v4-flash-vision-exp`）由 `visionModelHandling` 选择 `native`（原生放行，模型直接看图）或 `prism`（转 VEP，更省 token）。`provider` 可选 siliconflow / zhipu / modelscope / alibaba / openrouter / groq / **deepseek** / custom。
 
   本地/离线安装（源码 checkout 形态需与 `deepseek-prism/` 相邻；tarball 形态包内已含 skill/ 素材）：
 
   ```powershell
   dsh plugin --profile web add E:\Git\repositoris\DeepSeek_Prism\packages\plugin-dsh
   # 或
-  dsh plugin --profile web add https://github.com/YOGEMOW/DeepSeek_Prism/releases/download/v0.7.1/deepseek-prism-dsh-0.7.1.tgz
+  dsh plugin --profile web add https://github.com/YOGEMOW/DeepSeek_Prism/releases/download/v0.8.0/deepseek-prism-dsh-0.8.0.tgz
   ```
 
-  插件能力（v0.7.1）：模型可用 `prism_see` 工具按路径/URL 识图；对话直接上传图片时，纯文本模型自动把图片转为 VEP/2 证据文本入会话（原图持久化为附件并以路径指针告知模型，可对该路径补查）；`deepseek-prism` 技能随包运行时注册。配置三选一：Web 设置卡片（harness 白名单暴露该命名空间时）、profile 的 `cordis.patch.yml` 行配置、环境变量（`SILICONFLOW_API_KEY` / `VISION_BASE_URL` / `VISION_MODEL` / `VISION_REGION`）。详见 `packages/plugin-dsh/README.md`。
+  插件能力（v0.8.0）：模型可用 `prism_see` 工具按路径/URL 识图；对话上传图片时按模型能力处理（纯文本 → VEP 证据；视觉模型按 `visionModelHandling` 原生放行或 VEP）；`deepseek-prism` 技能随包运行时注册；设置卡片（0.6.x 可折叠样式）配置 Provider/模型/Base URL/区域/`visionModelHandling`/`deployMode`/用量与余额开关。配置三通道：Web 设置卡片（新上游自动暴露）、profile 的 `cordis.patch.yml` 行配置、环境变量。详见 `packages/plugin-dsh/README.md`。
 
-  > `harness-patch/dsh-prism-harness.patch` 为可选增强（原图展示 + 前端 VEP 折叠/进度卡片，应用后设置卡片可编辑），仅 v0.6.2 需要；`archive/plugin-dsh-zero-patch/` 为旧「零补丁 B 架构」的归档参考（不维护、不参与发布）。
+  > `harness-patch/dsh-prism-harness.patch` 为可选增强（原图展示 + 前端 VEP 折叠/进度卡片），仅 `deployMode: patch` 需要；`archive/plugin-dsh-zero-patch/` 为旧「零补丁 B 架构」的归档参考（不维护、不参与发布）。
 
 - **Codex**：`@yogemow/deepseek-prism-skill`（含一键安装 CLI）：
 

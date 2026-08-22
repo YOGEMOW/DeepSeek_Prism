@@ -2,6 +2,7 @@
 
 ## 已完成
 
+- 0.8.0 统一版（2026-08-16）：`@yogemow/deepseek-prism-dsh` 合并 0.6.x/0.7.x 为一条主线并适配 `deepseek-harness` 0.1.0-rc.8（上游 llm 层新增原生图片支持，`deepseek-v4-flash-vision-exp` 出厂即视觉）——新增 `deployMode`（zero-patch/patch）、`visionModelHandling`（native/prism）、`provider`（含 `deepseek` 视觉）三配置，视觉模型可原生放行或转 VEP；`vision.mjs` 加 DeepSeek 视觉 Provider；harness 补丁针对新上游重建（删设置白名单 hunk、serialize 剥离改到 adapter `stripDisplayOnlyImages`、ui-conversation 折叠/进度卡片与 `sendingCount` 移植）；harness 侧 234 项测试、插件宿主 29 项测试全部通过；deepseek-harness checkout 已应用新补丁并重建；插件/文档已提交（`b994717` 等）。
 - 重启验证（2026-08-16）：零补丁链路实测通过——重启后 `prism_see` 工具已注册（新描述）、`deepseek-prism` 技能随包运行时注册进入技能目录、设置文档密钥正确解析（settings.yaml 的 `deepseek-prism.apiKey` 继续生效）；`prism_see` 真实冒烟返回正确 VEP/2 证据（SiliconFlow GLM-4.5V）；**对话发图实测通过**：上传 `屏幕截图 2022-06-14 002808.jpg`（434×471、49816 B）→ 未被 `MODEL_DOES_NOT_SUPPORT_IMAGES` 拒绝，自动转为附件路径指针（`~/.dsh/attachments/v1/objects/a3/a30015f2…`，与 attachment-local v1 布局一致）+ VEP/2 证据（`m=general`、`Cartoon FX Free…` 内容正确、`[截断]` 为字段预算标记、`tokens=1013` 为 512→1024 档自适应升级两轮合计）+ 用量行 `cost=0.000476`；宿主注入的非密钥 `VISION_*`（model/baseUrl/region）可到达模型子进程，harness 会清洗子进程环境中的 `*_API_KEY` 类密钥（实测 DEEPSEEK_API_KEY 也不透传），已修正插件 JSDoc/README 的注入说明（模型直接运行 vision.mjs 的密钥走技能 `.env` 或 prism_see）。
 - 自包含组合包路线（2026-08-16，随 v0.7.0 发布）：DSH 插件重构为 harness 零补丁——纯文本模型图片准入改为包装 `apiProxy.sessions.prompt`（图片转 VEP/2 证据文本 + 附件路径指针，原图块不再保留）+ 保留 `imageFallback` 服务提供（幂等互兜）；恢复技能运行时注册（`ctx.skills.register`，包内素材，不向 `~/.dsh/skills` 写副本）；缺失密钥抛 `PrismConfigError` 直达客户端；Web 设置卡片在白名单未暴露时降级为配置指引（环境变量 / profile 行配置）；配置三通道（设置卡片 / 行配置 / 环境变量）；`apply` 按能力分组条件注入、全部注册挂 fiber（dispose 零残留）；插件测试重写 29 项、仓库全量 75 项全部通过；文档同步（README/harness-patch/PROJECT/STATUS/DECISIONS D18/CHANGELOG）。
 - deepseek-harness checkout 回退补丁（2026-08-16）：15 处修改 revert 至上游、新增 spec 与遗留日志删除、host/client 产物重建为上游基线，`git status` 干净；harness 侧零残留、上游更新零冲突。
@@ -55,9 +56,10 @@
 
 ## 进行中
 
-- 无（v0.7.1 / v0.6.2 补发版本已全部发布并验证）。
+- 0.8.0 统一版发布收尾：重建 harness 已执行；待 `git tag v0.8.0` + GitHub Release、npmjs 发布（用户 2FA）、部署 profile 切 0.8.0 并重启验证。
 
 ## 待处理
 
+- 部署 0.8.0 到本机 web profile（`dsh plugin add @yogemow/deepseek-prism-dsh@0.8.0` + 重启）并验证（settings 卡片、发图准入、视觉模型 native/prism）。
 - Codex 技能副本按需同步（skill 包内容未变）。
 - Keychain / 自动裁剪 / 更多样例（按需）。

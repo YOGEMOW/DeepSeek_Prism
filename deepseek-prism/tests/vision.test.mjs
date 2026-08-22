@@ -155,7 +155,7 @@ test("cacheKeyFor 稳定且随问题/模型变化", () => {
 test("resolveProviderOrder 按区域与优先级排序，custom 最优先", () => {
   const order = resolveProviderOrder("auto", "cn", {});
   assert.equal(order[0].id, "siliconflow");
-  assert.equal(order[1].id, "zhipu");
+  assert.equal(order[1].id, "deepseek");
   assert.ok(order.some((p) => p.region === "global"));
 
   const customEnv = {

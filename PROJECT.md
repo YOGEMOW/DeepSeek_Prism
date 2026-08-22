@@ -15,7 +15,7 @@ DeepSeek_Prism 是一个为纯文本 AI 模型（DeepSeek `deepseek-v4-flash`）
 
 - 独立项目 `E:\Git\repositoris\DeepSeek_Prism`，长期维护六份文档（PROJECT / PLAN / STATUS / DECISIONS / RISKS / CHANGELOG）+ AGENTS.md。
 - Skill 本体 `deepseek-prism/`：SKILL.md 触发协议、`scripts/vision.mjs` 零依赖 CLI、`references/` 模式与 Provider 文档、样例图片、单元与 mock 测试。
-- 安装到 Codex 技能目录（`C:\Users\用户名\.codex\skills\deepseek-prism`）；DSH 侧以**自包含 Cordis 组合包**集成（`packages/plugin-dsh`，`prism_see` 工具 + 纯文本模型图片准入 VEP 降级 + 技能运行时注册 + 设置卡片），经 `dsh plugin add` 安装进 profile，**无需对 deepseek-harness checkout 打补丁**（harness 零修改、上游更新零冲突、卸载零残留；`harness-patch/dsh-prism-harness.patch` 仅为可选 UI 增强）。
+- 安装到 Codex 技能目录（`C:\Users\用户名\.codex\skills\deepseek-prism`）；DSH 侧以**统一 Cordis 组合包**集成（`@yogemow/deepseek-prism-dsh` v0.8.0：`prism_see` 工具 + 纯文本/视觉模型准入（native/prism 二选一）+ Provider 含 DeepSeek 视觉 + 技能运行时注册 + 设置卡片），经 `dsh plugin add` 安装，`deployMode: patch` 时才需应用 `harness-patch/dsh-prism-harness.patch`（可选 UI/原图层）。
 - 视觉 Provider：SiliconFlow `zai-org/GLM-4.5V`（测试首选）等 OpenAI 兼容接口。
 
 ### 非目标 / 边界约束

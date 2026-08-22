@@ -1,5 +1,17 @@
 # CHANGELOG.md
 
+## [0.8.0] 2026-08-16
+
+### Added
+
+- **统一版（替代 0.6.x / 0.7.x）**，针对新上游 `deepseek-harness` 0.1.0-rc.8（适配其原生图片支持）：`prism_see` 工具 + `sessions.prompt` 包装（幂等）与 `imageFallback` 服务并存；技能运行时注册；设置卡片（0.6.x 可折叠样式）新增 **Provider**（含 `deepseek` = `deepseek-v4-flash-vision-exp`）、**`visionModelHandling`**（native 原生放行 / prism 转 VEP）、**`deployMode`**（zero-patch / patch 保留原图）三段；视觉模型两种处理选择（纯文本始终 prism 转换；视觉模型按 `visionModelHandling` 决定）；`vision.mjs` 新增 DeepSeek 视觉 Provider。
+- **harness 补丁针对新上游重建**：api-proxy 准入 `imageFallback` 接缝；llm-deepseek `adapter.ts` 纯文本模型显示性图片剥离（`stripDisplayOnlyImages`，替代旧 serialize 剥离）；ui-conversation 输入系统 `sendingCount`（contract/facade/hub/machine）与前端识别进度卡片/VEP 折叠链接/locales/CSS；白名单 hunk 已删除（新上游 `settings.describe` 自动暴露命名空间）。补丁为可选 UI/原图层，`deployMode: patch` 才需要。
+
+### Changed
+
+- 配置三通道：Web 设置卡片（新上游自动暴露）/ profile `cordis.patch.yml` 行配置（`deployMode`、`visionModelHandling`、`provider`）/ 环境变量；缺失密钥错误改为提示对应 Provider 的环境变量。
+- 插件 0.8.0 构建+宿主测试 29 项通过；harness 侧 234 项测试通过（补丁 5 个文件）。
+
 ## [0.7.1] 2026-08-16
 
 ### Changed
