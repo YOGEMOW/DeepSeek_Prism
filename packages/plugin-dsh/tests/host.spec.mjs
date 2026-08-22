@@ -409,7 +409,8 @@ test('transformImageContent 输出触顶时自动升级预算重试并汇总用�
     }
     calls += 1
     maxTokensSeen.push(JSON.parse(options.body).max_tokens)
-    const completion = calls === 1 ? 500 : 200
+    // 第一次触顶 1024 档（1000 >= 1024*0.95），第二次在 2048 档正常收尾。
+    const completion = calls === 1 ? 1000 : 200
     return {
       ok: true,
       text: async () => JSON.stringify({
@@ -424,10 +425,42 @@ test('transformImageContent 输出触顶时自动升级预算重试并汇总用�
       { type: 'image', mediaType: 'image/png', data: PNG_BASE64 },
     ], () => ({ apiKey: 'sk-test', model: 'glm-test', showBalance: true }))
     assert.equal(calls, 2, '触顶后必须升级重试')
-    assert.deepEqual(maxTokensSeen, [512, 1024])
-    assert.match(transformed[1].text, /tokens=720/)
+    assert.deepEqual(maxTokensSeen, [1024, 2048])
+    // 用量汇总两轮：total = 1010 + 210 = 1220；余额 0 不渲染；cost 按汇总估算
+    // （20*0.14 + 1200*0.86 = 1034.8 → 0.001035 元）。
+    assert.match(transformed[1].text, /tokens=1220/)
     assert.doesNotMatch(transformed[1].text, /balance=/)
-    assert.match(transformed[1].text, /cost=0\.000605/)
+    assert.match(transformed[1].text, /cost=0\.001035/)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
+
+test('transformImageContent 证据文本被预算截断时自动升档重取（不再交半截内容）', async () => {
+  const originalFetch = globalThis.fetch
+  let calls = 0
+  const maxTokensSeen = []
+  globalThis.fetch = async (url, options) => {
+    calls += 1
+    maxTokensSeen.push(JSON.parse(options.body).max_tokens)
+    // a 字段 1200 字符：首档（2048×0.45≈921）必截断 → 升档后（4096×0.45≈1843）完整。
+    return {
+      ok: true,
+      text: async () => JSON.stringify({
+        choices: [{ message: { content: `{"a":"${'X'.repeat(1200)}"}` } }],
+        usage: { prompt_tokens: 10, completion_tokens: 30, total_tokens: 40 },
+      }),
+    }
+  }
+  try {
+    const { ctx } = stubServices()
+    const transformed = await transformImageContent(ctx, [
+      { type: 'image', mediaType: 'image/png', data: PNG_BASE64 },
+    ], () => ({ apiKey: 'sk-test', model: 'glm-test' }))
+    assert.equal(calls, 2, '截断后必须升档重取')
+    assert.deepEqual(maxTokensSeen, [1024, 2048])
+    assert.match(transformed[1].text, /X{1200}/, '升档后 a 字段完整')
+    assert.doesNotMatch(transformed[1].text, /\[截断\]/, '升档后不再截断')
   } finally {
     globalThis.fetch = originalFetch
   }

@@ -71,7 +71,8 @@ export const SETTINGS_NAMESPACE = settingsNamespace('deepseek-prism')
 
 export const DEFAULT_MODEL = 'zai-org/GLM-4.5V'
 export const DEFAULT_BASE_URL = 'https://api.siliconflow.cn/v1'
-export const DEFAULT_MAX_CHARS = 520
+/** Compact-evidence text budget (code/log screenshots fit; `VEP_MAX_CHARS` overrides). */
+export const DEFAULT_MAX_CHARS = 2048
 
 /** Vision provider ids selectable from the settings card (mirrors vision.mjs PROVIDERS). */
 export const VISION_PROVIDER_IDS = [
@@ -130,9 +131,11 @@ interface BudgetTier {
   maxChars: number
 }
 const BUDGET_TIERS: readonly BudgetTier[] = [
-  { maxBytes: 256 * 1024, maxTokens: 512, timeoutMs: 45_000, maxChars: 520 },
-  { maxBytes: 1024 * 1024, maxTokens: 1024, timeoutMs: 60_000, maxChars: 1024 },
-  { maxBytes: Number.POSITIVE_INFINITY, maxTokens: 2048, timeoutMs: 90_000, maxChars: 2048 },
+  // Text budgets sized so ordinary code/log/OCR screenshots survive one pass
+  // (the old 520-char cap truncated long text fields in daily use).
+  { maxBytes: 256 * 1024, maxTokens: 1024, timeoutMs: 60_000, maxChars: 2048 },
+  { maxBytes: 1024 * 1024, maxTokens: 2048, timeoutMs: 90_000, maxChars: 4096 },
+  { maxBytes: Number.POSITIVE_INFINITY, maxTokens: 4096, timeoutMs: 120_000, maxChars: 8192 },
 ]
 
 /** Output-cap utilization at which a tier is considered exhausted (retry next tier). */
@@ -323,7 +326,8 @@ type VisionCall = (args: {
  * @param prompt - the assembled extraction prompt.
  * @param imageDataUrls - one or more base64 data URLs (multi-image powers diff).
  * @param bytes - largest decoded image byte size (tier selection).
- * @returns the final raw text, its usage, and the tier's text budget.
+ * @param startTierIndex - minimum tier to start at (truncation escalation re-runs).
+ * @returns the final raw text, its usage, the tier's text budget, and the tier index used.
  */
 async function recognizeWithBudget(
   vision: VisionModule,
@@ -332,10 +336,12 @@ async function recognizeWithBudget(
   prompt: string,
   imageDataUrls: readonly string[],
   bytes: number,
-): Promise<{ raw: string; usage: UsageTotals; maxChars: number }> {
+  startTierIndex = 0,
+): Promise<{ raw: string; usage: UsageTotals; maxChars: number; tierIndex: number }> {
   const envMaxChars = Number(process.env.VEP_MAX_CHARS)
   let tierIndex = BUDGET_TIERS.findIndex(tier => bytes <= tier.maxBytes)
   if (tierIndex < 0) tierIndex = BUDGET_TIERS.length - 1
+  if (tierIndex < startTierIndex) tierIndex = startTierIndex
   let totals: UsageTotals = EMPTY_USAGE
   for (;;) {
     const tier = BUDGET_TIERS[tierIndex]
@@ -366,7 +372,41 @@ async function recognizeWithBudget(
       raw,
       usage: totals,
       maxChars: Number.isFinite(envMaxChars) && envMaxChars > 0 ? envMaxChars : tier.maxChars,
+      tierIndex,
     }
+  }
+}
+
+/**
+ * Recognize and compile VEP evidence, escalating to the next tier when the
+ * evidence's text fields were cut at the char budget (long code/log/OCR
+ * screenshots), so a truncated first pass automatically re-extracts at a
+ * bigger budget instead of handing the model a partial transcript.
+ * @returns the compiled VEP text and the summed usage across all rounds.
+ */
+async function recognizeForEvidence(
+  vision: VisionModule,
+  provider: ReturnType<typeof prismProvider>,
+  resolved: PrismResolvedSettings,
+  prompt: string,
+  imageDataUrls: readonly string[],
+  bytes: number,
+  mode: string,
+): Promise<{ vep: string; usage: UsageTotals }> {
+  let tierIndex = 0
+  for (;;) {
+    const { raw, usage, maxChars, tierIndex: used } = await recognizeWithBudget(
+      vision, provider, resolved, prompt, imageDataUrls, bytes, tierIndex,
+    )
+    tierIndex = used
+    // Parse with the tier's field budget too: parseVisionResult otherwise
+    // truncates long fields at its own 520-char default, defeating the budget.
+    const result = vision.parseVisionResult(raw, provider.id, resolved.model, mode, false, { maxChars })
+    const vep = vision.toVep(result, maxChars)
+    if (!vep.includes(TRUNCATION_MARKER) || tierIndex >= BUDGET_TIERS.length - 1) {
+      return { vep, usage }
+    }
+    tierIndex += 1
   }
 }
 
@@ -439,6 +479,17 @@ async function persistImagePointers(
 /** VEP 转换文本的头部标记（识别已转换内容，避免二次转换）。 */
 const VEP_EVIDENCE_MARK = /【DeepSeek Prism (?:识别|对比)：/
 
+/** Field-budget truncation marker emitted by the vision pipeline's `toVep`. */
+const TRUNCATION_MARKER = '[截断]'
+
+/** Hint appended after evidence whose text field was cut at the char budget. */
+const TRUNCATION_HINT = '\n（证据已截断：可用 prism_see 工具对该图片完整提取，如 prism_see --detail。）'
+
+/** Append the truncation hint when the compiled evidence was cut at its budget. */
+function withTruncationHint(text: string): string {
+  return text.includes(TRUNCATION_MARKER) ? text + TRUNCATION_HINT : text
+}
+
 /**
  * Convert image prompt parts into VEP/2 evidence text for text-only model
  * routes. Originals are dropped (the harness serializer of an unpatched
@@ -467,7 +518,9 @@ export async function transformImageContent(
     (part): part is Extract<PrismPromptPart, { type: 'image' }> => part.type === 'image',
   )
   const keepOriginals = resolved.deployMode === 'patch'
-  const pointers = keepOriginals ? [] : await persistImagePointers(ctx, imageParts)
+  // Always persist + point at the originals so the model can re-run
+  // `prism_see` on the saved path for full extraction (e.g. truncated code).
+  const pointers = await persistImagePointers(ctx, imageParts)
   // The user's accompanying text IS the intent: mode inference runs on it
   // alone (the generic extraction prompt would otherwise dominate the
   // keywords), while the full question still carries it to the model.
@@ -483,8 +536,7 @@ export async function transformImageContent(
   if (mode === 'diff' && imageParts.length === 2) {
     const urls = imageParts.map(part => `data:${part.mediaType};base64,${part.data}`)
     const bytes = Math.max(...imageParts.map(part => Buffer.from(part.data, 'base64').byteLength))
-    const { raw, usage, maxChars } = await recognizeWithBudget(vision, provider, resolved, prompt, urls, bytes)
-    const result = vision.parseVisionResult(raw, provider.id, resolved.model, mode, false)
+    const { vep, usage } = await recognizeForEvidence(vision, provider, resolved, prompt, urls, bytes, mode)
     const label = (index: number): string => {
       const part = imageParts[index]
       return part?.name !== undefined && part.name.trim() !== '' ? part.name : `图 ${index + 1}`
@@ -492,10 +544,10 @@ export async function transformImageContent(
     const usageLine = await buildUsageLine(resolved, vision, usage)
     const diffPart: PrismPromptPart = {
       type: 'text',
-      text: `【DeepSeek Prism 对比：${label(0)} vs ${label(1)}】\n${vision.toVep(result, maxChars)}${usageLine}`,
+      text: withTruncationHint(`【DeepSeek Prism 对比：${label(0)} vs ${label(1)}】\n${vep}`) + usageLine,
     }
     return keepOriginals
-      ? [...textParts, ...imageParts, diffPart]
+      ? [...textParts, ...pointers, ...imageParts, diffPart]
       : [...textParts, ...pointers, diffPart]
   }
 
@@ -504,13 +556,12 @@ export async function transformImageContent(
     await Promise.all(imageParts.map(async (part, index) => {
       const imageDataUrl = `data:${part.mediaType};base64,${part.data}`
       const bytes = Buffer.from(part.data, 'base64').byteLength
-      const { raw, usage, maxChars } = await recognizeWithBudget(
-        vision, provider, resolved, prompt, [imageDataUrl], bytes,
+      const { vep, usage } = await recognizeForEvidence(
+        vision, provider, resolved, prompt, [imageDataUrl], bytes, mode,
       )
-      const result = vision.parseVisionResult(raw, provider.id, resolved.model, mode, false)
       const label = part.name === undefined || part.name.trim() === '' ? `图片 ${index + 1}` : part.name
       return {
-        part: { type: 'text', text: `【DeepSeek Prism 识别：${label}】\n${vision.toVep(result, maxChars)}` },
+        part: { type: 'text', text: `【DeepSeek Prism 识别：${label}】\n${vep}` },
         usage,
       }
     }))
@@ -523,11 +574,13 @@ export async function transformImageContent(
     EMPTY_USAGE,
   )
   const usageLine = await buildUsageLine(resolved, vision, totals)
-  const recognizedParts = recognized.map(entry => entry.part.type === 'text' && usageLine !== ''
-    ? { ...entry.part, text: entry.part.text + usageLine }
-    : entry.part)
+  const recognizedParts = recognized.map(entry => {
+    if (entry.part.type !== 'text') return entry.part
+    const text = withTruncationHint(entry.part.text)
+    return usageLine === '' ? { ...entry.part, text } : { ...entry.part, text: text + usageLine }
+  })
   return keepOriginals
-    ? [...textParts, ...imageParts, ...recognizedParts]
+    ? [...textParts, ...pointers, ...imageParts, ...recognizedParts]
     : [...textParts, ...pointers, ...recognizedParts]
 }
 
@@ -694,7 +747,8 @@ function createPrismSeeTool(ctx: Context, sourceOf: () => PrismSettings) {
         withMeta: true,
       })
       if (detail) return { text: vision.cleanRaw(raw) }
-      const result = vision.parseVisionResult(raw, provider.id, resolved.model, mode, false)
+      // Parse with the same budget as toVep (else parse truncates at 520 default).
+      const result = vision.parseVisionResult(raw, provider.id, resolved.model, mode, false, { maxChars })
       return { text: vision.toVep(result, maxChars) }
     },
     presentCall(args) {

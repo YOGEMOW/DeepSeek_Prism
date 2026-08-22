@@ -1,6 +1,6 @@
 {
   "name": "@yogemow/deepseek-prism-dsh",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "DeepSeek Prism for DeepSeek Harness (DSH): prism_see tool + text-only/image model admission (native pass-through or VEP/2 conversion) + runtime skill + settings card (provider incl. deepseek-vision, deployMode, visionModelHandling). Unified bundle — optional harness patch for original display + fold/progress UI.",
   "type": "module",
   "main": "lib/index.js",
